@@ -15,9 +15,22 @@ const SUBJECTS_STORAGE_KEY = 'unischedule_subjects';
 // Next.js App Router requires a default export for pages
 export default function SchedulePage() {
   const { t, lang } = useLanguage();
-  const { lectures, loading, error, weekSchedule, refetch } = useSchedule();
   const { group } = useUserGroup();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Load selected subjects
+  const [selectedSubjects, setSelectedSubjects] = useState<string[] | null>(null);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SUBJECTS_STORAGE_KEY);
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSelectedSubjects(parsed);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const { lectures, loading, error, weekSchedule, refetch } = useSchedule(selectedSubjects);
   const [selectedSubjects, setSelectedSubjects] = useState<string[] | null>(null);
 
   useEffect(() => {

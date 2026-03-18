@@ -55,23 +55,36 @@ export default function ExamsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Don't filter exams by subjects - exam and lecture subjects are from different semesters
-  // Instead, show ALL exams for the group with a search filter
-  const { exams: allExams, loading, error, refetch } = useExams(
+  // Load selected subjects from onboarding
+  const [selectedSubjects, setSelectedSubjects] = useState<string[] | null>(null);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('unischedule_subjects');
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSelectedSubjects(parsed);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Fetch exams filtered by selected subjects (fuzzy matching handles mismatches)
+  const { exams: subjectFilteredExams, loading, error, refetch } = useExams(
     group?.groupCode || null,
     group?.university || 'agruni',
-    null // no subject filter
+    selectedSubjects
   );
 
-  // Client-side search filter
+  // Additional client-side search filter on top
   const exams = useMemo(() => {
-    if (!searchQuery.trim()) return allExams;
+    if (!searchQuery.trim()) return subjectFilteredExams;
     const q = searchQuery.toLowerCase().trim();
-    return allExams.filter(e =>
+    return subjectFilteredExams.filter(e =>
       e.subjectClean.toLowerCase().includes(q) ||
       e.lecturers.some(l => l.toLowerCase().includes(q))
     );
-  }, [allExams, searchQuery]);
+  }, [subjectFilteredExams, searchQuery]);
+
+  const allExams = subjectFilteredExams;
 
   const examsByDate = useMemo(() => groupExamsByDate(exams), [exams]);
   const sortedDates = useMemo(

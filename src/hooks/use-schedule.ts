@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Lecture, WeekSchedule } from '@/types';
 import { useUserGroup } from '@/hooks/use-user-group';
+import { subjectInList } from '@/lib/subject-matcher';
 
 const DAY_NAMES_KA: Record<number, string> = {
   1: 'ორშაბათი',
@@ -20,15 +21,15 @@ const DAY_NAMES_EN: Record<number, string> = {
   5: 'Friday',
 };
 
-export function useSchedule() {
-  const [lectures, setLectures] = useState<Lecture[]>([]);
+export function useSchedule(selectedSubjects?: string[] | null) {
+  const [rawLectures, setRawLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { group, loading: groupLoading } = useUserGroup();
 
   const fetchLectures = useCallback(async () => {
     if (!group?.groupCode) {
-      setLectures([]);
+      setRawLectures([]);
       setLoading(false);
       return;
     }
@@ -46,7 +47,7 @@ export function useSchedule() {
 
       const json = await res.json();
       const data: Lecture[] = Array.isArray(json) ? json : (json.lectures ?? []);
-      setLectures(data);
+      setRawLectures(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch lectures';
       setError(message);
@@ -56,10 +57,15 @@ export function useSchedule() {
   }, [group?.groupCode]);
 
   useEffect(() => {
-    // Wait for group to hydrate before fetching
     if (groupLoading) return;
     fetchLectures();
   }, [fetchLectures, groupLoading]);
+
+  // Filter lectures by selected subjects using fuzzy matching
+  const lectures = useMemo(() => {
+    if (!selectedSubjects || selectedSubjects.length === 0) return rawLectures;
+    return rawLectures.filter((l) => subjectInList(l.subject, selectedSubjects));
+  }, [rawLectures, selectedSubjects]);
 
   const weekSchedule: WeekSchedule = useMemo(() => {
     const days: WeekSchedule = [];
@@ -80,6 +86,7 @@ export function useSchedule() {
 
   return {
     lectures,
+    rawLectures,
     loading: groupLoading || loading,
     error,
     weekSchedule,
