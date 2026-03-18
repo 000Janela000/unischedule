@@ -43,7 +43,8 @@ export default function OnboardingPage() {
     if (!selectedFaculty || !year || !groupNumber) return '';
     const academicYear = getAcademicYear();
     const entryYear = academicYear - year + 1;
-    return buildGroupCode(selectedFaculty.prefix, entryYear, groupNumber);
+    const prefix = year === 1 ? '' : selectedFaculty.prefix;
+    return buildGroupCode(prefix, entryYear, groupNumber);
   }, [selectedFaculty, year, groupNumber]);
 
   function handleNext() {
@@ -62,7 +63,9 @@ export default function OnboardingPage() {
 
     const academicYear = getAcademicYear();
     const entryYear = academicYear - year + 1;
-    const groupCode = buildGroupCode(selectedFaculty.prefix, entryYear, groupNumber);
+    // First year (year=1) students share common courses - use no prefix
+    const prefix = year === 1 ? '' : selectedFaculty.prefix;
+    const groupCode = buildGroupCode(prefix, entryYear, groupNumber);
 
     const userGroup: UserGroup = {
       university: 'agruni',

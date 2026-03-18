@@ -49,7 +49,18 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
-      <body className={`${notoSans.variable} font-sans antialiased`}>
+      <body className={`${notoSans.variable} font-sans antialiased`} suppressHydrationWarning>
+        {/* Prevent theme flash: apply dark class before React hydrates */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              var theme = JSON.parse(localStorage.getItem('unischedule_theme') || '"system"');
+              if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+              }
+            } catch(e) {}
+          })();
+        `}} />
         <LanguageProvider>
           <ServiceWorkerRegistrar />
           <div className="md:flex">
