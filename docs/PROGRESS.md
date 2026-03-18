@@ -1,12 +1,13 @@
 # UniSchedule - Implementation Progress
 
-## Current Status: Phase 3 - COMPLETE (code), Phase 4 next
+## Current Status: ALL PHASES COMPLETE (code)
 
 | Phase | Name | Status | Tasks |
 |-------|------|--------|-------|
 | 1 | Core MVP - Exam Schedule | COMPLETE | 10/10 |
 | 2 | Lecture Schedule + Polish | COMPLETE | 4/4 |
 | 3 | Auth + PWA + Push | COMPLETE (code) | 6/6 code, 2 user actions pending |
+| 4 | Gmail + Calendar + Deploy | COMPLETE (code) | 3/4 code, deployment pending |
 | 2 | Lecture Schedule + Polish | NOT STARTED | 0/4 |
 | 3 | Auth + Protected Sheets + Push Notifications | NOT STARTED | 0/6 |
 | 4 | Gmail + Polish + Deployment | NOT STARTED | 0/4 |
@@ -23,7 +24,7 @@ See individual phase docs in `docs/phases/`:
 
 **What this project does**: Parses Google Sheets exam/lecture schedules from Agricultural University of Georgia, filters by student's group code, shows clean mobile-first UI with countdowns and notifications.
 
-**Where we are**: Phases 1-3 code complete. PWA, push notifications, auto-URL discovery, auth config all built. User needs to: (1) create Google Cloud project + credentials, (2) generate PWA icons. Phase 4 (Gmail + deploy) is next.
+**Where we are**: All 4 phases code complete. 60+ source files, zero build errors. Ready for browser testing and deployment. User actions needed: (1) Google Cloud project + credentials, (2) PWA icons, (3) gh auth + GitHub repo, (4) Vercel deployment.
 
 **Key data**: Exam schedule is publicly accessible via `gviz/tq?tqx=out:csv` API. Lecture schedule requires auth. Group codes like `chem24-01` map to faculties.
 

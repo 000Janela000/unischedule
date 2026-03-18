@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
-import { RefreshCw, AlertCircle, ClipboardList } from 'lucide-react';
+import { useMemo, useState, useCallback } from 'react';
+import { RefreshCw, AlertCircle, ClipboardList, Download } from 'lucide-react';
 import { useExams } from '@/hooks/use-exams';
 import { useUserGroup } from '@/hooks/use-user-group';
 import { useLanguage } from '@/i18n';
 import { ExamDayGroup } from '@/components/exams/exam-day-group';
+import { generateBulkICS, downloadICS } from '@/lib/calendar-export';
+import { cn } from '@/lib/utils';
 import type { Exam } from '@/types';
 
 function ExamSkeleton() {
@@ -52,12 +54,29 @@ export default function ExamsPage() {
     group?.groupCode || null,
     group?.university || 'agruni'
   );
+  const [refreshing, setRefreshing] = useState(false);
+  const [exported, setExported] = useState(false);
 
   const examsByDate = useMemo(() => groupExamsByDate(exams), [exams]);
   const sortedDates = useMemo(
     () => Array.from(examsByDate.keys()).sort(),
     [examsByDate]
   );
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    // Keep spinning for at least 600ms for visual feedback
+    setTimeout(() => setRefreshing(false), 600);
+  }, [refetch]);
+
+  const handleExportAll = useCallback(() => {
+    if (exams.length === 0) return;
+    const ics = generateBulkICS(exams);
+    downloadICS(ics, 'unischedule-exams.ics');
+    setExported(true);
+    setTimeout(() => setExported(false), 2000);
+  }, [exams]);
 
   // Loading state
   if (loading) {
@@ -103,37 +122,84 @@ export default function ExamsPage() {
   }
 
   return (
-    <div className="space-y-6 px-4 py-4">
-      {/* Header with refresh button */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground">{t('exams.title')}</h1>
-        <button
-          type="button"
-          onClick={refetch}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Group info */}
-      {group && (
-        <div className="rounded-lg bg-muted px-3 py-2">
-          <span className="font-mono text-xs font-medium text-primary">
-            {group.groupCode}
-          </span>
+    <>
+      <style jsx>{`
+        @keyframes examFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .exam-day-animate {
+          animation: examFadeIn 0.4s ease-out both;
+        }
+      `}</style>
+      <div className="space-y-6 px-4 py-4">
+        {/* Header with refresh and export buttons */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-foreground">{t('exams.title')}</h1>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleExportAll}
+              className={cn(
+                'flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-all duration-200',
+                exported
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-muted-foreground hover:text-foreground active:scale-95'
+              )}
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {exported
+                  ? lang === 'ka' ? 'ექსპორტირებულია!' : 'Exported!'
+                  : lang === 'ka' ? 'ყველას ექსპორტი' : 'Export All'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            >
+              <RefreshCw
+                className={cn(
+                  'h-4 w-4 transition-transform',
+                  refreshing && 'animate-spin'
+                )}
+              />
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Exam day groups */}
-      {sortedDates.map((date) => (
-        <ExamDayGroup
-          key={date}
-          date={date}
-          exams={examsByDate.get(date)!}
-          lang={lang}
-        />
-      ))}
-    </div>
+        {/* Group info */}
+        {group && (
+          <div className="rounded-lg bg-muted px-3 py-2">
+            <span className="font-mono text-xs font-medium text-primary">
+              {group.groupCode}
+            </span>
+          </div>
+        )}
+
+        {/* Exam day groups with staggered fade-in */}
+        {sortedDates.map((date, index) => (
+          <div
+            key={date}
+            className="exam-day-animate"
+            style={{ animationDelay: `${index * 80}ms` }}
+          >
+            <ExamDayGroup
+              date={date}
+              exams={examsByDate.get(date)!}
+              lang={lang}
+            />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

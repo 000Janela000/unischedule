@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { StepIndicator } from '@/components/onboarding/step-indicator';
 import { UniversityToggle } from '@/components/onboarding/university-toggle';
@@ -21,10 +21,13 @@ export default function OnboardingPage() {
   const { t } = useLanguage();
 
   const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const [animating, setAnimating] = useState(false);
   const [university, setUniversity] = useState<'agruni' | 'freeuni' | null>(null);
   const [facultyId, setFacultyId] = useState<string | null>(null);
   const [year, setYear] = useState<number | null>(null);
   const [groupNumber, setGroupNumber] = useState<number | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const canGoNext = useMemo(() => {
     switch (step) {
@@ -51,7 +54,12 @@ export default function OnboardingPage() {
 
   function handleNext() {
     if (step < TOTAL_STEPS) {
-      setStep(step + 1);
+      setDirection('forward');
+      setAnimating(true);
+      setTimeout(() => {
+        setStep(step + 1);
+        setAnimating(false);
+      }, 150);
       return;
     }
 
@@ -76,7 +84,12 @@ export default function OnboardingPage() {
 
   function handleBack() {
     if (step > 1) {
-      setStep(step - 1);
+      setDirection('back');
+      setAnimating(true);
+      setTimeout(() => {
+        setStep(step - 1);
+        setAnimating(false);
+      }, 150);
     }
   }
 
@@ -96,41 +109,45 @@ export default function OnboardingPage() {
         <p className="mt-4 text-sm text-muted-foreground">{stepTitles[step - 1]}</p>
       </div>
 
-      {/* Step content with slide transition */}
+      {/* Step content with fade + slide transition */}
       <div className="flex-1 overflow-hidden px-4">
         <div
-          className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${(step - 1) * 100}%)` }}
+          ref={contentRef}
+          className="px-1 pt-4 transition-all duration-300 ease-in-out"
+          style={{
+            opacity: animating ? 0 : 1,
+            transform: animating
+              ? `translateX(${direction === 'forward' ? '20px' : '-20px'})`
+              : 'translateX(0)',
+          }}
         >
           {/* Step 1: University */}
-          <div className="w-full flex-shrink-0 px-1 pt-4">
+          {step === 1 && (
             <UniversityToggle value={university} onChange={setUniversity} />
-          </div>
+          )}
 
           {/* Step 2: Faculty */}
-          <div className="w-full flex-shrink-0 px-1 pt-4">
-            {university && (
-              <FacultyGrid
-                university={university}
-                value={facultyId}
-                onChange={setFacultyId}
-              />
-            )}
-          </div>
+          {step === 2 && university && (
+            <FacultyGrid
+              university={university}
+              value={facultyId}
+              onChange={setFacultyId}
+            />
+          )}
 
           {/* Step 3: Year */}
-          <div className="w-full flex-shrink-0 px-1 pt-4">
+          {step === 3 && (
             <YearPicker value={year} onChange={setYear} />
-          </div>
+          )}
 
           {/* Step 4: Group */}
-          <div className="w-full flex-shrink-0 px-1 pt-4">
+          {step === 4 && (
             <GroupPicker
               value={groupNumber}
               onChange={setGroupNumber}
               groupCodePreview={groupCodePreview}
             />
-          </div>
+          )}
         </div>
       </div>
 

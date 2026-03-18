@@ -128,6 +128,20 @@ export const en: TranslationKeys = {
     notConnected: 'Google is not connected',
     instructions: 'This page is for the admin. Connecting a Google account enables automatic fetching of the lecture schedule.',
   },
+  calendar: {
+    addToCalendar: 'Add to Calendar',
+    exportAll: 'Export All',
+    exported: 'Exported!',
+    downloading: 'Downloading...',
+  },
+  gmail: {
+    connect: 'Connect Gmail',
+    disconnect: 'Disconnect',
+    connected: 'Gmail is connected',
+    notConnected: 'Gmail is not connected',
+    description: 'Automatically fetch exam room and seat details from your university email',
+    setupRequired: 'Google Cloud credentials need to be configured to connect Gmail. Contact the administrator.',
+  },
   common: {
     appName: 'UniSchedule',
     loading: 'Loading...',

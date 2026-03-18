@@ -126,6 +126,20 @@ export const ka = {
     notConnected: 'Google არ არის დაკავშირებული',
     instructions: 'ეს გვერდი განკუთვნილია ადმინისტრატორისთვის. Google ანგარიშის დაკავშირებით შესაძლებელი იქნება ლექციების ცხრილის ავტომატური წამოღება.',
   },
+  calendar: {
+    addToCalendar: 'კალენდარში დამატება',
+    exportAll: 'ყველას ექსპორტი',
+    exported: 'ექსპორტირებულია!',
+    downloading: 'იტვირთება...',
+  },
+  gmail: {
+    connect: 'Gmail-ის დაკავშირება',
+    disconnect: 'გათიშვა',
+    connected: 'Gmail დაკავშირებულია',
+    notConnected: 'Gmail არ არის დაკავშირებული',
+    description: 'ავტომატურად წამოიღეთ გამოცდის ოთახისა და ადგილის დეტალები თქვენი უნივერსიტეტის ელ-ფოსტიდან',
+    setupRequired: 'Gmail-ის დასაკავშირებლად საჭიროა Google Cloud-ის კრედენციალების კონფიგურაცია. დაუკავშირდით ადმინისტრატორს.',
+  },
   common: {
     appName: 'UniSchedule',
     loading: 'იტვირთება...',

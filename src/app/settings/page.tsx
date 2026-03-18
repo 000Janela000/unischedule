@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Sun, Moon, Monitor, Globe, Github, Upload, Trash2, FileSpreadsheet, Bell } from 'lucide-react';
+import { ChevronRight, Sun, Moon, Monitor, Globe, Github, Upload, Trash2, FileSpreadsheet, Bell, Mail, MailCheck } from 'lucide-react';
 import { useUserGroup } from '@/hooks/use-user-group';
 import { useTheme } from '@/hooks/use-theme';
 import { useLanguage } from '@/i18n';
@@ -21,6 +21,8 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [notifTimings, setNotifTimings] = useState<string[]>(['1d', '2h']);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [gmailMessage, setGmailMessage] = useState<string | null>(null);
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,6 +220,58 @@ export default function SettingsPage() {
                 </div>
               )}
             </>
+          )}
+        </div>
+      </section>
+
+      {/* Gmail Integration */}
+      <section className="rounded-lg border border-border bg-card">
+        <div className="p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-card-foreground">
+              Gmail
+            </h2>
+          </div>
+
+          <p className="mb-3 text-xs text-muted-foreground">
+            {t('gmail.description')}
+          </p>
+
+          {gmailConnected ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MailCheck className="h-4 w-4 text-green-500" />
+                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                  {t('gmail.connected')}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setGmailConnected(false);
+                  setGmailMessage(null);
+                }}
+                className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
+              >
+                {t('gmail.disconnect')}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setGmailMessage(t('gmail.setupRequired'));
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+            >
+              <Mail className="h-4 w-4" />
+              {t('gmail.connect')}
+            </button>
+          )}
+
+          {gmailMessage && (
+            <p className="mt-2 text-xs text-muted-foreground">{gmailMessage}</p>
           )}
         </div>
       </section>

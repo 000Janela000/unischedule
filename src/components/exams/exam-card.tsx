@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, Clock, Users } from 'lucide-react';
+import { ChevronDown, Clock, Users, CalendarPlus } from 'lucide-react';
+import { generateICS, downloadICS } from '@/lib/calendar-export';
 import type { Exam } from '@/types';
 import { ExamType } from '@/types';
 import { ExamTypeBadge } from '@/components/exams/exam-type-badge';
@@ -29,6 +30,7 @@ export function ExamCard({ exam, lang }: ExamCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [seat, setSeat] = useState('');
   const [section, setSection] = useState<string | null>(null);
+  const [calendarExported, setCalendarExported] = useState(false);
 
   const targetDate = new Date(`${exam.date}T${exam.startTime}:00`);
 
@@ -52,10 +54,18 @@ export function ExamCard({ exam, lang }: ExamCardProps) {
     [exam.id]
   );
 
+  const handleCalendarExport = useCallback(() => {
+    const ics = generateICS(exam);
+    const filename = `${exam.subjectClean.replace(/\s+/g, '_')}.ics`;
+    downloadICS(ics, filename);
+    setCalendarExported(true);
+    setTimeout(() => setCalendarExported(false), 2000);
+  }, [exam]);
+
   return (
     <div
       className={cn(
-        'rounded-lg border border-border bg-card border-l-4 transition-shadow hover:shadow-sm',
+        'rounded-lg border border-border bg-card border-l-4 transition-all duration-200 hover:shadow-sm active:scale-[0.98]',
         borderColorMap[exam.examType]
       )}
     >
@@ -154,6 +164,28 @@ export function ExamCard({ exam, lang }: ExamCardProps) {
                   <RoomMiniMap highlightSection={section} />
                 </div>
               )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCalendarExport();
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200',
+                  calendarExported
+                    ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                    : 'bg-muted text-foreground hover:bg-muted/80 active:scale-95'
+                )}
+              >
+                <CalendarPlus className="h-3.5 w-3.5" />
+                {calendarExported
+                  ? lang === 'ka' ? 'დაემატა!' : 'Exported!'
+                  : lang === 'ka' ? 'კალენდარში დამატება' : 'Add to Calendar'}
+              </button>
             </div>
           </div>
         </div>

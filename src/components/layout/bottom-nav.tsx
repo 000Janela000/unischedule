@@ -34,14 +34,17 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-colors',
+                'relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-all duration-200 active:scale-95',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className={cn('h-5 w-5 transition-transform duration-200', isActive && 'scale-110')} />
               <span>{t(item.labelKey)}</span>
+              {isActive && (
+                <span className="absolute bottom-1 h-0.5 w-5 rounded-full bg-primary transition-all duration-300" />
+              )}
             </Link>
           );
         })}
