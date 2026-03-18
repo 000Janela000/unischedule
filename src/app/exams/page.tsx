@@ -1,8 +1,7 @@
 'use client';
 
-import { useMemo, useState, useCallback, useEffect } from 'react';
-import Link from 'next/link';
-import { RefreshCw, AlertCircle, ClipboardList, Download, BookOpen } from 'lucide-react';
+import { useMemo, useState, useCallback } from 'react';
+import { RefreshCw, AlertCircle, ClipboardList, Download, Search } from 'lucide-react';
 import { useExams } from '@/hooks/use-exams';
 import { useUserGroup } from '@/hooks/use-user-group';
 import { useLanguage } from '@/i18n';
@@ -10,8 +9,6 @@ import { ExamDayGroup } from '@/components/exams/exam-day-group';
 import { generateBulkICS, downloadICS } from '@/lib/calendar-export';
 import { cn } from '@/lib/utils';
 import type { Exam } from '@/types';
-
-const SUBJECTS_STORAGE_KEY = 'unischedule_subjects';
 
 function ExamSkeleton() {
   return (
@@ -56,26 +53,25 @@ export default function ExamsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [exported, setExported] = useState(false);
 
-  const [selectedSubjects, setSelectedSubjects] = useState<string[] | null>(null);
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(SUBJECTS_STORAGE_KEY);
-      if (raw !== null) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          setSelectedSubjects(parsed);
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const { exams, loading, error, refetch } = useExams(
+  // Don't filter exams by subjects - exam and lecture subjects are from different semesters
+  // Instead, show ALL exams for the group with a search filter
+  const { exams: allExams, loading, error, refetch } = useExams(
     group?.groupCode || null,
     group?.university || 'agruni',
-    selectedSubjects
+    null // no subject filter
   );
+
+  // Client-side search filter
+  const exams = useMemo(() => {
+    if (!searchQuery.trim()) return allExams;
+    const q = searchQuery.toLowerCase().trim();
+    return allExams.filter(e =>
+      e.subjectClean.toLowerCase().includes(q) ||
+      e.lecturers.some(l => l.toLowerCase().includes(q))
+    );
+  }, [allExams, searchQuery]);
 
   const examsByDate = useMemo(() => groupExamsByDate(exams), [exams]);
   const sortedDates = useMemo(
@@ -129,7 +125,7 @@ export default function ExamsPage() {
     );
   }
 
-  if (exams.length === 0) {
+  if (allExams.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-20 text-center animate-fade-in">
         <ClipboardList className="mb-4 h-16 w-16 text-muted-foreground/30" />
@@ -185,23 +181,28 @@ export default function ExamsPage() {
         </div>
       </div>
 
-      {/* Group info + subject filter indicator */}
-      <div className="flex items-center gap-2 animate-slide-up" style={{ animationDelay: '50ms' }}>
+      {/* Search + group info */}
+      <div className="space-y-3 animate-slide-up" style={{ animationDelay: '50ms' }}>
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={lang === 'ka' ? 'ძებნა საგნის ან ლექტორის მიხედვით...' : 'Search by subject or lecturer...'}
+            className="w-full rounded-xl border border-border/50 bg-card py-2.5 pl-10 pr-4 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none transition-all duration-200"
+          />
+        </div>
         {group && (
-          <div className="rounded-full bg-muted/60 px-3 py-1.5">
-            <span className="font-mono text-xs font-medium text-primary">
-              {group.groupCode}
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-muted/60 px-3 py-1">
+              <span className="font-mono text-xs font-medium text-primary">{group.groupCode}</span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {allExams.length} {lang === 'ka' ? 'გამოცდა' : 'exams'}
+              {searchQuery && ` · ${exams.length} ${lang === 'ka' ? 'ნაპოვნი' : 'found'}`}
             </span>
           </div>
-        )}
-        {selectedSubjects && (
-          <Link
-            href="/subjects"
-            className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-200 hover:text-foreground hover:bg-muted"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            {t('subjects.nSubjects').replace('{n}', String(selectedSubjects.length))}
-          </Link>
         )}
       </div>
 
