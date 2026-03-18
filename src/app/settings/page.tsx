@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Sun, Moon, Monitor, Globe, Github, Bell, Heart } from 'lucide-react';
-import { useUserGroup } from '@/hooks/use-user-group';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { useLanguage } from '@/i18n';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 // Next.js App Router requires a default export for pages
 export default function SettingsPage() {
-  const { group } = useUserGroup();
+  const { group } = useAuthGuard();
   const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { supported: pushSupported, permission: pushPermission, subscribed, subscribe, unsubscribe } = useNotifications();

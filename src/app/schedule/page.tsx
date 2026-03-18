@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { RefreshCw, AlertCircle, CalendarX, BookOpen } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSchedule } from '@/hooks/use-schedule';
-import { useUserGroup } from '@/hooks/use-user-group';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { WeekGrid } from '@/components/schedule/week-grid';
 import { cn } from '@/lib/utils';
 import type { Lecture } from '@/types';
@@ -15,7 +15,7 @@ const SUBJECTS_STORAGE_KEY = 'unischedule_subjects';
 // Next.js App Router requires a default export for pages
 export default function SchedulePage() {
   const { t, lang } = useLanguage();
-  const { group } = useUserGroup();
+  const { group } = useAuthGuard();
   const [refreshing, setRefreshing] = useState(false);
 
   // Load selected subjects

@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { RefreshCw, AlertCircle, ClipboardList, Download, Search } from 'lucide-react';
 import { useExams } from '@/hooks/use-exams';
-import { useUserGroup } from '@/hooks/use-user-group';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { useLanguage } from '@/i18n';
 import { ExamDayGroup } from '@/components/exams/exam-day-group';
 import { generateBulkICS, downloadICS } from '@/lib/calendar-export';
@@ -48,7 +48,8 @@ function groupExamsByDate(exams: Exam[]): Map<string, Exam[]> {
 
 // Next.js App Router requires a default export for pages
 export default function ExamsPage() {
-  const { group, loading: groupLoading } = useUserGroup();
+  const { ready, group } = useAuthGuard();
+  const groupLoading = !ready;
   const { lang, t } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [exported, setExported] = useState(false);
