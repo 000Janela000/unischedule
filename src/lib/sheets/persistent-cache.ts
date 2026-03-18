@@ -5,7 +5,7 @@ const CACHE_DIR = process.env.VERCEL
   ? '/tmp'
   : path.join(process.cwd(), 'data');
 
-const DEFAULT_TTL = 15 * 60 * 1000; // 15 minutes
+const DEFAULT_TTL = 60 * 60 * 1000; // 1 hour
 
 interface CacheEntry<T> {
   data: T;

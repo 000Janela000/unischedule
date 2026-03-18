@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import type { Lecture } from '@/types';
 
 const LECTURE_FILE_ID = process.env.LECTURE_SHEET_ID || '1PY7AyDut0EjvzIW6C6bLH-2iFYIbLVau';
-const CACHE_TTL = 15 * 60 * 1000;
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const TARGET_SHEET = 'Total Schedule as a List';
 const FILE_CACHE = 'lectures.json';
 

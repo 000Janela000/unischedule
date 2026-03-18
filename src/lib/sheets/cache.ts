@@ -1,6 +1,6 @@
 const cache = new Map<string, { data: unknown; expiresAt: number }>();
 
-const DEFAULT_TTL = 15 * 60 * 1000; // 15 minutes
+const DEFAULT_TTL = 60 * 60 * 1000; // 1 hour
 
 /**
  * Returns cached data if it exists and hasn't expired, otherwise null.
