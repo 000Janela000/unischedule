@@ -2,20 +2,17 @@
 
 import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { StepIndicator } from '@/components/onboarding/step-indicator';
-import { UniversityToggle } from '@/components/onboarding/university-toggle';
 import { FacultyGrid } from '@/components/onboarding/faculty-grid';
+import { StepIndicator } from '@/components/onboarding/step-indicator';
 import { YearPicker } from '@/components/onboarding/year-picker';
 import { GroupPicker } from '@/components/onboarding/group-picker';
 import { useLanguage } from '@/i18n';
 import { buildGroupCode, getAcademicYear, AGRUNI_FACULTIES, FIRST_YEAR_FACULTY } from '@/lib/group-decoder';
 import { setItem, STORAGE_KEYS } from '@/lib/storage';
 import type { UserGroup } from '@/types';
-import { cn } from '@/lib/utils';
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 2;
 
-// Next.js App Router requires a default export for pages
 export default function OnboardingPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -23,7 +20,6 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const [animating, setAnimating] = useState(false);
-  const [university, setUniversity] = useState<'agruni' | 'freeuni' | null>(null);
   const [facultyId, setFacultyId] = useState<string | null>(null);
   const [year, setYear] = useState<number | null>(null);
   const [groupNumber, setGroupNumber] = useState<number | null>(null);
@@ -31,12 +27,11 @@ export default function OnboardingPage() {
 
   const canGoNext = useMemo(() => {
     switch (step) {
-      case 1: return university !== null;
-      case 2: return facultyId !== null;
-      case 3: return year !== null && groupNumber !== null;
+      case 1: return facultyId !== null;
+      case 2: return year !== null && groupNumber !== null;
       default: return false;
     }
-  }, [step, university, facultyId, year, groupNumber]);
+  }, [step, facultyId, year, groupNumber]);
 
   const selectedFaculty = useMemo(() => {
     if (!facultyId) return null;
@@ -63,14 +58,14 @@ export default function OnboardingPage() {
     }
 
     // Final step: save and navigate
-    if (!university || !facultyId || !year || !groupNumber || !selectedFaculty) return;
+    if (!facultyId || !year || !groupNumber || !selectedFaculty) return;
 
     const academicYear = getAcademicYear();
     const entryYear = academicYear - year + 1;
     const groupCode = buildGroupCode(selectedFaculty.prefix, entryYear, groupNumber);
 
     const userGroup: UserGroup = {
-      university,
+      university: 'agruni',
       facultyId,
       year,
       groupNumber,
@@ -93,7 +88,6 @@ export default function OnboardingPage() {
   }
 
   const stepTitles = [
-    t('onboarding.selectUniversity'),
     t('onboarding.selectFaculty'),
     t('onboarding.selectYearAndGroup'),
   ];
@@ -104,19 +98,19 @@ export default function OnboardingPage() {
       <div className="h-1 w-full bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
 
       {/* Header area */}
-      <div className="px-6 pt-6 pb-4 text-center">
+      <div className="px-6 pt-6 pb-3 text-center">
         <div className="mb-1 flex items-center justify-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
             U
           </div>
           <h1 className="text-xl font-bold text-foreground">UniSchedule</h1>
         </div>
-        <p className="mb-4 text-xs text-muted-foreground">agruni.edu.ge</p>
+        <p className="mb-3 text-xs text-muted-foreground">agruni.edu.ge</p>
         <StepIndicator currentStep={step} totalSteps={TOTAL_STEPS} />
-        <p className="mt-4 text-base font-semibold text-foreground">{stepTitles[step - 1]}</p>
+        <p className="mt-3 text-base font-semibold text-foreground">{stepTitles[step - 1]}</p>
       </div>
 
-      {/* Step content with fade + slide transition */}
+      {/* Step content */}
       <div className="flex-1 overflow-hidden px-6">
         <div
           ref={contentRef}
@@ -129,16 +123,13 @@ export default function OnboardingPage() {
           }}
         >
           {step === 1 && (
-            <UniversityToggle value={university} onChange={setUniversity} />
-          )}
-          {step === 2 && university && (
             <FacultyGrid
-              university={university}
+              university="agruni"
               value={facultyId}
               onChange={setFacultyId}
             />
           )}
-          {step === 3 && (
+          {step === 2 && (
             <div className="space-y-4">
               <YearPicker value={year} onChange={setYear} />
               {year !== null && (
@@ -168,14 +159,9 @@ export default function OnboardingPage() {
           type="button"
           onClick={handleNext}
           disabled={!canGoNext}
-          className={cn(
-            'flex-1 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 min-h-[48px]',
-            canGoNext
-              ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] shadow-sm shadow-primary/25'
-              : 'bg-muted text-muted-foreground cursor-not-allowed'
-          )}
+          className="flex-1 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed min-h-[48px]"
         >
-          {step === TOTAL_STEPS ? t('onboarding.finish') : t('onboarding.next')}
+          {step === TOTAL_STEPS ? t('onboarding.done') : t('onboarding.next')}
         </button>
       </div>
     </div>
