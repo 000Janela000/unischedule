@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDriveClient } from '@/lib/google-auth';
+import { readFileCache, writeFileCache } from '@/lib/sheets/persistent-cache';
 import * as XLSX from 'xlsx';
 import type { Lecture } from '@/types';
 
 const LECTURE_FILE_ID = process.env.LECTURE_SHEET_ID || '1PY7AyDut0EjvzIW6C6bLH-2iFYIbLVau';
 const CACHE_TTL = 15 * 60 * 1000;
 const TARGET_SHEET = 'Total Schedule as a List';
+const FILE_CACHE = 'lectures.json';
 
 let cachedData: { lectures: Lecture[]; timestamp: number } | null = null;
 
@@ -40,8 +42,17 @@ function detectType(value: string): Lecture['type'] {
 }
 
 async function fetchLectures(): Promise<Lecture[]> {
+  // Check in-memory cache
   if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
     return cachedData.lectures;
+  }
+
+  // Check file cache
+  const fileCached = readFileCache<Lecture[]>(FILE_CACHE);
+  if (fileCached) {
+    console.log(`[lectures] File cache hit: ${fileCached.length} lectures`);
+    cachedData = { lectures: fileCached, timestamp: Date.now() };
+    return fileCached;
   }
 
   console.log('[lectures] Downloading xlsx from Drive...');
@@ -104,6 +115,8 @@ async function fetchLectures(): Promise<Lecture[]> {
 
   console.log(`[lectures] Parsed ${lectures.length} lectures`);
   cachedData = { lectures, timestamp: Date.now() };
+  writeFileCache(FILE_CACHE, lectures);
+  console.log(`[lectures] Cached ${lectures.length} lectures to memory + file`);
   return lectures;
 }
 

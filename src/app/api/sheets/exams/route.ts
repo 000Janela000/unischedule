@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCached, setCached } from '@/lib/sheets/cache';
+import { readFileCache, writeFileCache } from '@/lib/sheets/persistent-cache';
 import { discoverSheetTabs } from '@/lib/sheets/discover-tabs';
 import { getSheetsClient } from '@/lib/google-auth';
 import { parseExamRows } from '@/lib/sheets/parse-exams';
@@ -7,6 +8,7 @@ import { doesGroupMatchExam } from '@/lib/group-decoder';
 import type { Exam } from '@/types';
 
 const CACHE_KEY = 'all-exams';
+const FILE_CACHE = 'exams.json';
 
 /**
  * GET /api/sheets/exams?group=chem24-01&university=agruni
@@ -24,8 +26,17 @@ export async function GET(request: Request) {
       | 'freeuni'
       | null;
 
-    // Check cache first
+    // Check caches: memory → file → Google API
     let allExams = getCached<Exam[]>(CACHE_KEY);
+
+    if (!allExams) {
+      // Try file cache (survives restarts)
+      allExams = readFileCache<Exam[]>(FILE_CACHE);
+      if (allExams) {
+        console.log(`[exams] File cache hit: ${allExams.length} exams`);
+        setCached(CACHE_KEY, allExams); // warm up memory cache
+      }
+    }
 
     if (!allExams) {
       const sheetId = process.env.EXAM_SHEET_ID;
@@ -112,8 +123,10 @@ export async function GET(request: Request) {
         return a.startTime.localeCompare(b.startTime);
       });
 
-      // Cache the combined result
+      // Cache the combined result (memory + file)
       setCached(CACHE_KEY, allExams);
+      writeFileCache(FILE_CACHE, allExams);
+      console.log(`[exams] Cached ${allExams.length} exams to memory + file`);
     }
 
     // Apply filters

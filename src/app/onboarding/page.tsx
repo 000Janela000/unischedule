@@ -101,7 +101,7 @@ export default function OnboardingPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background max-w-2xl mx-auto w-full">
+    <div className="flex flex-1 flex-col bg-background max-w-2xl mx-auto w-full">
       {/* Green gradient accent at top */}
       <div className="h-1 w-full bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
 

@@ -45,45 +45,8 @@ export function FacultyGrid({ university, value, onChange }: FacultyGridProps) {
 
   return (
     <div className="space-y-4">
-      {/* First Year Card */}
-      <button
-        type="button"
-        onClick={() => onChange(FIRST_YEAR_FACULTY.id)}
-        className={cn(
-          'relative flex w-full items-center gap-4 rounded-xl border-2 p-4 transition-all duration-200 min-h-[64px]',
-          value === FIRST_YEAR_FACULTY.id
-            ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
-            : 'border-border/50 bg-card hover:border-muted-foreground/30 hover:shadow-sm'
-        )}
-      >
-        {value === FIRST_YEAR_FACULTY.id && (
-          <div className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Check className="h-3 w-3" />
-          </div>
-        )}
-        <GraduationCap
-          className={cn(
-            'h-8 w-8 flex-shrink-0 transition-colors duration-200',
-            value === FIRST_YEAR_FACULTY.id ? 'text-primary' : 'text-muted-foreground'
-          )}
-        />
-        <div className="text-left">
-          <div
-            className={cn(
-              'font-semibold transition-colors duration-200',
-              value === FIRST_YEAR_FACULTY.id ? 'text-primary' : 'text-foreground'
-            )}
-          >
-            {FIRST_YEAR_FACULTY.nameKa}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {FIRST_YEAR_FACULTY.nameEn}
-          </div>
-        </div>
-      </button>
-
       {/* Faculty Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {faculties.map((faculty) => {
           const isSelected = value === faculty.id;
           const Icon = iconMap[faculty.icon] || GraduationCap;

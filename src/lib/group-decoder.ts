@@ -199,13 +199,20 @@ function containsGeorgian(str: string): boolean {
 }
 
 /**
+ * Normalize a group code for fuzzy matching.
+ * Strips spaces, lowercases. "ce 22-01" → "ce22-01", "CE22-01" → "ce22-01"
+ */
+function normalizeGroupCode(code: string): string {
+  return code.replace(/\s+/g, '').toLowerCase();
+}
+
+/**
  * Checks if a user's group code appears in the exam's group list.
  * Handles:
- *   - Comma-separated groups within a single string (e.g. "25-01,25-02,25-03")
- *   - Case-insensitive comparison
+ *   - Comma-separated groups within a single string
+ *   - Fuzzy matching: strips spaces, case-insensitive ("ce22-01" matches "ce 22-01")
  *   - Prefix matching (e.g. "chem24" matches "chem24-01")
- *   - Skips Georgian text entries (retake descriptions, etc.)
- *   - Supports multiple user groups (comma-separated)
+ *   - Skips Georgian text entries
  */
 export function doesGroupMatchExam(
   userGroup: string,
@@ -213,39 +220,29 @@ export function doesGroupMatchExam(
 ): boolean {
   if (!userGroup || !examGroups || examGroups.length === 0) return false;
 
-  // Split user group in case it contains multiple codes
   const userCodes = userGroup
     .split(',')
-    .map((g) => g.trim().toLowerCase())
+    .map((g) => normalizeGroupCode(g))
     .filter(Boolean);
 
   if (userCodes.length === 0) return false;
 
-  // Flatten exam groups: each entry might contain comma-separated codes
   const allExamCodes: string[] = [];
   for (const eg of examGroups) {
     const parts = eg.split(',').map((g) => g.trim()).filter(Boolean);
     for (const part of parts) {
-      // Skip entries that are clearly Georgian text
       if (containsGeorgian(part)) continue;
-      allExamCodes.push(part.toLowerCase());
+      allExamCodes.push(normalizeGroupCode(part));
     }
   }
 
   if (allExamCodes.length === 0) return false;
 
-  // Check if ANY user code matches ANY exam code
   return userCodes.some((userCode) =>
     allExamCodes.some((examCode) => {
-      // Exact match
       if (userCode === examCode) return true;
-
-      // User group is more specific: "chem24-01" matches exam group "chem24"
       if (userCode.startsWith(examCode)) return true;
-
-      // Exam group is more specific: "chem24" matches exam group "chem24-01"
       if (examCode.startsWith(userCode)) return true;
-
       return false;
     })
   );
