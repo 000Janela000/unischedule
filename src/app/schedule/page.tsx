@@ -31,20 +31,6 @@ export default function SchedulePage() {
   }, []);
 
   const { lectures, loading, error, weekSchedule, refetch } = useSchedule(selectedSubjects);
-  const [selectedSubjects, setSelectedSubjects] = useState<string[] | null>(null);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(SUBJECTS_STORAGE_KEY);
-      if (raw !== null) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          setSelectedSubjects(parsed);
-        }
-      }
-    } catch {
-      // ignore
-    }
   }, []);
 
   const handleRefresh = useCallback(async () => {
