@@ -42,7 +42,7 @@ export function SidebarNav() {
           U
         </div>
         <Link href="/exams" className="text-base font-semibold text-foreground">
-          UniSchedule
+          UniHub
         </Link>
       </div>
 
@@ -76,7 +76,7 @@ export function SidebarNav() {
       </nav>
 
       <div className="border-t border-border/50 px-6 py-4">
-        <p className="text-[10px] text-muted-foreground/60">UniSchedule v1.0.0</p>
+        <p className="text-[10px] text-muted-foreground/60">UniHub v1.0.0</p>
       </div>
     </aside>
   );

@@ -106,7 +106,7 @@ export default function OnboardingPage() {
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
             U
           </div>
-          <h1 className="text-xl font-bold text-foreground">UniSchedule</h1>
+          <h1 className="text-xl font-bold text-foreground">UniHub</h1>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">agruni.edu.ge</p>
         <StepIndicator currentStep={step} totalSteps={TOTAL_STEPS} />

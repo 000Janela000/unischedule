@@ -48,7 +48,7 @@ export default function HomePage() {
           U
         </div>
         <div className="flex flex-col items-center gap-2">
-          <span className="text-base font-semibold text-foreground">UniSchedule</span>
+          <span className="text-base font-semibold text-foreground">UniHub</span>
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </div>

@@ -16,13 +16,13 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "UniSchedule",
+  title: "UniHub",
   description: "University schedule & exam tracker for Agricultural University of Georgia",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "UniSchedule",
+    title: "UniHub",
   },
   other: {
     "mobile-web-app-capable": "yes",

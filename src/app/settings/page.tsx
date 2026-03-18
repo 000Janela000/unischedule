@@ -197,7 +197,7 @@ export default function SettingsPage() {
           </h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">UniSchedule</span>
+              <span className="text-xs text-muted-foreground">UniHub</span>
               <span className="rounded-full bg-muted/60 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
                 v1.0.0
               </span>

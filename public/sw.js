@@ -35,7 +35,7 @@ self.addEventListener('fetch', (event) => {
 // Push notification handler
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'UniSchedule';
+  const title = data.title || 'UniHub';
   const options = {
     body: data.body || '',
     icon: '/icons/icon-192.png',

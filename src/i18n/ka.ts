@@ -5,7 +5,7 @@ export const ka = {
     settings: 'პარამეტრები',
   },
   onboarding: {
-    welcomeTitle: 'კეთილი იყოს შენი მობრძანება UniSchedule-ში',
+    welcomeTitle: 'კეთილი იყოს შენი მობრძანება UniHub-ში',
     welcomeSubtitle: 'აგრარული უნივერსიტეტის გამოცდებისა და ცხრილის ტრეკერი',
     selectUniversity: 'აირჩიეთ უნივერსიტეტი',
     selectFaculty: 'აირჩიეთ ფაკულტეტი',
@@ -126,7 +126,7 @@ export const ka = {
     testSent: 'სატესტო შეტყობინება გაგზავნილია',
   },
   install: {
-    prompt: 'დააინსტალირეთ UniSchedule სწრაფი წვდომისთვის',
+    prompt: 'დააინსტალირეთ UniHub სწრაფი წვდომისთვის',
     button: 'ინსტალაცია',
     dismiss: 'დახურვა',
   },
@@ -144,7 +144,7 @@ export const ka = {
     downloading: 'იტვირთება...',
   },
   common: {
-    appName: 'UniSchedule',
+    appName: 'UniHub',
     loading: 'იტვირთება...',
     error: 'შეცდომა',
     retry: 'თავიდან ცდა',

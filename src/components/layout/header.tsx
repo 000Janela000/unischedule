@@ -21,7 +21,7 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border/50 backdrop-blur-xl bg-background/80 px-4 sm:px-6 md:left-60 md:px-6">
       <Link href="/exams" className="text-lg font-semibold text-foreground md:hidden">
-        UniSchedule
+        UniHub
       </Link>
       {/* Desktop: show current page title */}
       <h1 className="hidden md:block text-sm font-medium text-muted-foreground">

@@ -112,7 +112,7 @@ export function generateICS(exam: Exam): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//UniSchedule//Exam Calendar//EN',
+    'PRODID:-//UniHub//Exam Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     generateTimezone(),
@@ -134,7 +134,7 @@ export function generateBulkICS(exams: Exam[]): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//UniSchedule//Exam Calendar//EN',
+    'PRODID:-//UniHub//Exam Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     generateTimezone(),

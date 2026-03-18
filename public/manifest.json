@@ -1,7 +1,7 @@
 {
-  "name": "UniSchedule - გამოცდების ცხრილი",
-  "short_name": "UniSchedule",
-  "description": "აგრარული უნივერსიტეტის ცხრილი და გამოცდები",
+  "name": "UniHub - სტუდენტის პორტალი",
+  "short_name": "UniHub",
+  "description": "აგრარული უნივერსიტეტის სტუდენტის პორტალი - ცხრილი, გამოცდები და სხვა",
   "start_url": "/exams",
   "display": "standalone",
   "background_color": "#ffffff",

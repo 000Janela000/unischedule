@@ -7,7 +7,7 @@ export const en: TranslationKeys = {
     settings: 'Settings',
   },
   onboarding: {
-    welcomeTitle: 'Welcome to UniSchedule',
+    welcomeTitle: 'Welcome to UniHub',
     welcomeSubtitle: 'Agricultural University exam & schedule tracker',
     selectUniversity: 'Select University',
     selectFaculty: 'Select Faculty',
@@ -128,7 +128,7 @@ export const en: TranslationKeys = {
     testSent: 'Test notification sent',
   },
   install: {
-    prompt: 'Install UniSchedule for quick access',
+    prompt: 'Install UniHub for quick access',
     button: 'Install',
     dismiss: 'Dismiss',
   },
@@ -146,7 +146,7 @@ export const en: TranslationKeys = {
     downloading: 'Downloading...',
   },
   common: {
-    appName: 'UniSchedule',
+    appName: 'UniHub',
     loading: 'Loading...',
     error: 'Error',
     retry: 'Retry',
