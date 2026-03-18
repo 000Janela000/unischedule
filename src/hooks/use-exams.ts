@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Exam } from '@/types';
 import { getItem, setItem, STORAGE_KEYS } from '@/lib/storage';
 
@@ -11,14 +11,18 @@ interface CachedExams {
 
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
-export function useExams(group: string | null, university: 'agruni' | 'freeuni' = 'agruni') {
-  const [exams, setExams] = useState<Exam[]>([]);
+export function useExams(
+  group: string | null,
+  university: 'agruni' | 'freeuni' = 'agruni',
+  selectedSubjects?: string[] | null
+) {
+  const [rawExams, setRawExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchExams = useCallback(async () => {
     if (!group) {
-      setExams([]);
+      setRawExams([]);
       setLoading(false);
       return;
     }
@@ -29,7 +33,7 @@ export function useExams(group: string | null, university: 'agruni' | 'freeuni' 
     // Check localStorage cache first
     const cached = getItem<CachedExams | null>(STORAGE_KEYS.EXAM_CACHE, null);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      setExams(cached.data);
+      setRawExams(cached.data);
       setLoading(false);
       return;
     }
@@ -53,7 +57,7 @@ export function useExams(group: string | null, university: 'agruni' | 'freeuni' 
         return a.startTime.localeCompare(b.startTime);
       });
 
-      setExams(sorted);
+      setRawExams(sorted);
       setItem(STORAGE_KEYS.EXAM_CACHE, { data: sorted, timestamp: Date.now() });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch exams';
@@ -66,6 +70,14 @@ export function useExams(group: string | null, university: 'agruni' | 'freeuni' 
   useEffect(() => {
     fetchExams();
   }, [fetchExams]);
+
+  // Filter by selected subjects
+  const exams = useMemo(() => {
+    if (!selectedSubjects || selectedSubjects.length === 0) return rawExams;
+    return rawExams.filter((exam) =>
+      selectedSubjects.includes(exam.subjectClean)
+    );
+  }, [rawExams, selectedSubjects]);
 
   return { exams, loading, error, refetch: fetchExams };
 }

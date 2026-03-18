@@ -5,7 +5,7 @@ import { Settings } from 'lucide-react';
 
 export function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b bg-background px-4 sm:px-6 md:pl-0">
+    <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b bg-background px-4 sm:px-6 md:left-60 md:pl-0">
       <Link href="/exams" className="text-lg font-bold text-foreground md:hidden">
         UniSchedule
       </Link>

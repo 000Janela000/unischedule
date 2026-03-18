@@ -79,7 +79,7 @@ export default function OnboardingPage() {
     };
 
     setItem(STORAGE_KEYS.USER_GROUP, userGroup);
-    router.push('/exams');
+    router.push('/subjects');
   }
 
   function handleBack() {

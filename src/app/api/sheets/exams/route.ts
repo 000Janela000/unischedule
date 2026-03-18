@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCached, setCached } from '@/lib/sheets/cache';
 import { discoverSheetTabs } from '@/lib/sheets/discover-tabs';
-import { fetchSheetCSV } from '@/lib/sheets/fetch-csv';
-import { parseExamCSV } from '@/lib/sheets/parse-exams';
+import { getSheetsClient } from '@/lib/google-auth';
+import { parseExamRows } from '@/lib/sheets/parse-exams';
 import { doesGroupMatchExam } from '@/lib/group-decoder';
 import type { Exam } from '@/types';
 
@@ -11,7 +11,8 @@ const CACHE_KEY = 'all-exams';
 /**
  * GET /api/sheets/exams?group=chem24-01&university=agruni
  *
- * Fetches, parses, and caches all exam data from the Google Sheets document.
+ * Fetches, parses, and caches all exam data from the Google Sheets document
+ * using the Sheets API v4 (Service Account auth).
  * Optionally filters by group code and/or university.
  */
 export async function GET(request: Request) {
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
         );
       }
 
-      // Discover all tabs in the sheet
+      // Discover all tabs in the sheet via Sheets API
       const tabs = await discoverSheetTabs(sheetId);
 
       if (tabs.length === 0) {
@@ -46,36 +47,63 @@ export async function GET(request: Request) {
         );
       }
 
-      // Fetch CSV for each tab in parallel
-      const csvResults = await Promise.all(
-        tabs.map(async (tab) => {
-          try {
-            const csv = await fetchSheetCSV(sheetId, tab.gid);
-            return { tab, csv };
-          } catch (error) {
-            console.warn(
-              `Failed to fetch CSV for tab "${tab.name}" (gid=${tab.gid}):`,
-              error
-            );
-            return { tab, csv: null };
-          }
-        })
-      );
+      console.log(`[exams] Discovered ${tabs.length} tabs`);
 
-      // Parse each CSV into exams
-      allExams = [];
-      for (const { tab, csv } of csvResults) {
-        if (!csv) continue;
+      const sheets = getSheetsClient();
+
+      // Fetch ALL tab data using batchGet (single API call instead of 165)
+      const ranges = tabs.map((tab) => `'${tab.name}'`);
+      const BATCH_SIZE = 50; // batchGet supports up to ~50 ranges per call
+      const tabResults: { tab: (typeof tabs)[0]; rows: string[][] }[] = [];
+
+      for (let i = 0; i < ranges.length; i += BATCH_SIZE) {
+        const batchRanges = ranges.slice(i, i + BATCH_SIZE);
+        const batchTabs = tabs.slice(i, i + BATCH_SIZE);
+
         try {
-          const exams = parseExamCSV(csv, tab.name);
+          const response = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: sheetId,
+            ranges: batchRanges,
+            valueRenderOption: 'UNFORMATTED_VALUE',
+            dateTimeRenderOption: 'FORMATTED_STRING',
+          });
+
+          const valueRanges = response.data.valueRanges || [];
+          for (let j = 0; j < batchTabs.length; j++) {
+            const rows = (valueRanges[j]?.values as string[][] | undefined) || [];
+            tabResults.push({ tab: batchTabs[j], rows });
+          }
+        } catch (error) {
+          console.warn(
+            `[exams] batchGet failed for batch ${i / BATCH_SIZE + 1}:`,
+            error instanceof Error ? error.message : error
+          );
+          // Push empty results for this batch
+          for (const tab of batchTabs) {
+            tabResults.push({ tab, rows: [] });
+          }
+        }
+      }
+
+      console.log(`[exams] Fetched data from ${tabResults.filter(r => r.rows.length > 0).length}/${tabs.length} tabs`);
+
+      // Parse each tab's rows into exams
+      allExams = [];
+      for (const { tab, rows } of tabResults) {
+        if (rows.length === 0) continue;
+        try {
+          const exams = parseExamRows(rows, tab.name, tab.date);
+          console.log(`[exams] Tab "${tab.name}": parsed ${exams.length} exams from ${rows.length} rows`);
           allExams.push(...exams);
         } catch (error) {
           console.warn(
-            `Failed to parse exams for tab "${tab.name}":`,
-            error
+            `[exams] Failed to parse exams for tab "${tab.name}":`,
+            error instanceof Error ? error.message : error
           );
         }
       }
+
+      console.log(`[exams] Total parsed: ${allExams.length} exams from ${tabs.length} tabs`);
 
       // Sort by date and time
       allExams.sort((a, b) => {
@@ -90,6 +118,7 @@ export async function GET(request: Request) {
 
     // Apply filters
     let filtered = allExams;
+    const totalBeforeFilter = allExams.length;
 
     if (universityFilter) {
       filtered = filtered.filter(
@@ -103,8 +132,20 @@ export async function GET(request: Request) {
       );
     }
 
+    // Collect debug info when returning 0 results
+    const debugInfo = filtered.length === 0 && groupFilter ? {
+      totalExamsBeforeFilter: totalBeforeFilter,
+      groupFilter,
+      universityFilter,
+      allGroupsFound: Array.from(new Set(allExams.flatMap((e) => e.groups))).slice(0, 50),
+    } : undefined;
+
     return NextResponse.json(
-      { exams: filtered, total: filtered.length },
+      {
+        exams: filtered,
+        total: filtered.length,
+        ...(debugInfo ? { debug: debugInfo } : {}),
+      },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
@@ -112,7 +153,7 @@ export async function GET(request: Request) {
       }
     );
   } catch (error) {
-    console.error('Error in /api/sheets/exams:', error);
+    console.error('[exams] Error in /api/sheets/exams:', error);
 
     const message =
       error instanceof Error ? error.message : 'Internal server error';

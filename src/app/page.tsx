@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { getItem, STORAGE_KEYS } from '@/lib/storage';
 import type { UserGroup } from '@/types';
 
+const SUBJECTS_STORAGE_KEY = 'unischedule_subjects';
+
 // Next.js App Router requires a default export for pages
 export default function HomePage() {
   const router = useRouter();
@@ -13,10 +15,26 @@ export default function HomePage() {
   useEffect(() => {
     const group = getItem<UserGroup | null>(STORAGE_KEYS.USER_GROUP, null);
 
-    if (group) {
-      router.replace('/exams');
-    } else {
+    if (!group) {
       router.replace('/onboarding');
+    } else {
+      // Check if subjects have been selected
+      let hasSubjects = false;
+      try {
+        const raw = window.localStorage.getItem(SUBJECTS_STORAGE_KEY);
+        if (raw !== null) {
+          const parsed = JSON.parse(raw);
+          hasSubjects = Array.isArray(parsed);
+        }
+      } catch {
+        // ignore
+      }
+
+      if (!hasSubjects) {
+        router.replace('/subjects');
+      } else {
+        router.replace('/exams');
+      }
     }
 
     setLoading(false);

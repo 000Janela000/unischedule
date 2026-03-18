@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Lecture, DaySchedule, WeekSchedule } from '@/types';
-import { getItem, setItem, removeItem, STORAGE_KEYS } from '@/lib/storage';
 import { useUserGroup } from '@/hooks/use-user-group';
 
 const DAY_NAMES_KA: Record<number, string> = {
@@ -22,40 +21,49 @@ const DAY_NAMES_EN: Record<number, string> = {
 };
 
 export function useSchedule() {
-  const [lectures, setLecturesState] = useState<Lecture[]>([]);
+  const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { group } = useUserGroup();
 
+  const fetchLectures = useCallback(async () => {
+    if (!group?.groupCode) {
+      setLectures([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({ group: group.groupCode });
+      const res = await fetch(`/api/sheets/lectures?${params.toString()}`);
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch lectures: ${res.status}`);
+      }
+
+      const json = await res.json();
+      const data: Lecture[] = Array.isArray(json) ? json : (json.lectures ?? []);
+      setLectures(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch lectures';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [group?.groupCode]);
+
   useEffect(() => {
-    const stored = getItem<Lecture[]>(STORAGE_KEYS.LECTURE_DATA, []);
-    setLecturesState(stored);
-    setLoading(false);
-  }, []);
-
-  const setLectures = useCallback((newLectures: Lecture[]) => {
-    setLecturesState(newLectures);
-    setItem(STORAGE_KEYS.LECTURE_DATA, newLectures);
-  }, []);
-
-  const clearLectures = useCallback(() => {
-    setLecturesState([]);
-    removeItem(STORAGE_KEYS.LECTURE_DATA);
-  }, []);
-
-  // Filter by user's group if available
-  const filteredLectures = useMemo(() => {
-    if (!group || !group.groupCode) return lectures;
-    const code = group.groupCode.toLowerCase();
-    return lectures.filter(
-      (l) => !l.group || l.group.toLowerCase() === code || l.group.trim() === ''
-    );
-  }, [lectures, group]);
+    fetchLectures();
+  }, [fetchLectures]);
 
   // Group lectures into WeekSchedule (Mon-Fri)
   const weekSchedule: WeekSchedule = useMemo(() => {
     const days: WeekSchedule = [];
     for (let d = 1; d <= 5; d++) {
-      const dayLectures = filteredLectures
+      const dayLectures = lectures
         .filter((l) => l.dayOfWeek === d)
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
@@ -67,14 +75,13 @@ export function useSchedule() {
       });
     }
     return days;
-  }, [filteredLectures]);
+  }, [lectures]);
 
   return {
-    lectures: filteredLectures,
-    allLectures: lectures,
+    lectures,
     loading,
-    setLectures,
-    clearLectures,
+    error,
     weekSchedule,
+    refetch: fetchLectures,
   };
 }

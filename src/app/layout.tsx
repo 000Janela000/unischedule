@@ -56,7 +56,7 @@ export default function RootLayout({
             <div className="flex-1 md:ml-60">
               <Header />
               <InstallPrompt />
-              <main className="pt-14 pb-20 md:pb-6 min-h-screen">{children}</main>
+              <main className="pt-14 pb-16 md:pb-6 min-h-screen">{children}</main>
             </div>
           </div>
           <BottomNav />

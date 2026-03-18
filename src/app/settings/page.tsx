@@ -1,14 +1,12 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Sun, Moon, Monitor, Globe, Github, Upload, Trash2, FileSpreadsheet, Bell, Mail, MailCheck } from 'lucide-react';
+import { ChevronRight, Sun, Moon, Monitor, Globe, Github, Bell } from 'lucide-react';
 import { useUserGroup } from '@/hooks/use-user-group';
 import { useTheme } from '@/hooks/use-theme';
 import { useLanguage } from '@/i18n';
-import { useSchedule } from '@/hooks/use-schedule';
 import { useNotifications } from '@/hooks/use-notifications';
-import { parseLectureFile } from '@/lib/sheets/parse-lectures';
 import { cn } from '@/lib/utils';
 
 // Next.js App Router requires a default export for pages
@@ -16,46 +14,8 @@ export default function SettingsPage() {
   const { group } = useUserGroup();
   const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useLanguage();
-  const { allLectures, setLectures, clearLectures } = useSchedule();
   const { supported: pushSupported, permission: pushPermission, subscribed, subscribe, unsubscribe } = useNotifications();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [notifTimings, setNotifTimings] = useState<string[]>(['1d', '2h']);
-  const [gmailConnected, setGmailConnected] = useState(false);
-  const [gmailMessage, setGmailMessage] = useState<string | null>(null);
-
-  const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      try {
-        const buffer = await file.arrayBuffer();
-        const parsed = parseLectureFile(buffer, file.name);
-
-        if (parsed.length === 0) {
-          setUploadMessage(t('settings.noLectures'));
-          return;
-        }
-
-        setLectures(parsed);
-        setUploadMessage(`${parsed.length} ${t('settings.parseSuccess')}`);
-      } catch {
-        setUploadMessage(t('settings.parseError'));
-      }
-
-      // Reset the file input so the same file can be re-uploaded
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    },
-    [setLectures, t]
-  );
-
-  const handleClear = useCallback(() => {
-    clearLectures();
-    setUploadMessage(null);
-  }, [clearLectures]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 px-4 py-4">
@@ -85,70 +45,6 @@ export default function SettingsPage() {
             {t('settings.change')}
             <ChevronRight className="h-3 w-3" />
           </Link>
-        </div>
-      </section>
-
-      {/* Upload Schedule */}
-      <section className="rounded-lg border border-border bg-card">
-        <div className="p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium text-card-foreground">
-              {t('settings.uploadSchedule')}
-            </h2>
-          </div>
-
-          <p className="mb-3 text-xs text-muted-foreground">
-            {t('settings.uploadScheduleDesc')}
-          </p>
-
-          {allLectures.length > 0 ? (
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-primary">
-                {allLectures.length} {t('settings.lecturesLoaded')}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 min-h-[44px] text-xs font-medium text-foreground transition-colors hover:bg-muted/80"
-                >
-                  <Upload className="h-3 w-3" />
-                  {t('settings.change')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 min-h-[44px] text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  {t('settings.clearSchedule')}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-4 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-            >
-              <Upload className="h-4 w-4" />
-              {t('settings.uploadSchedule')}
-            </button>
-          )}
-
-          {uploadMessage && (
-            <p className="mt-2 text-xs text-muted-foreground">{uploadMessage}</p>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={handleFileChange}
-            className="hidden"
-            aria-label={t('settings.uploadSchedule')}
-          />
         </div>
       </section>
 
@@ -220,58 +116,6 @@ export default function SettingsPage() {
                 </div>
               )}
             </>
-          )}
-        </div>
-      </section>
-
-      {/* Gmail Integration */}
-      <section className="rounded-lg border border-border bg-card">
-        <div className="p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Mail className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium text-card-foreground">
-              Gmail
-            </h2>
-          </div>
-
-          <p className="mb-3 text-xs text-muted-foreground">
-            {t('gmail.description')}
-          </p>
-
-          {gmailConnected ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MailCheck className="h-4 w-4 text-green-500" />
-                <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                  {t('gmail.connected')}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setGmailConnected(false);
-                  setGmailMessage(null);
-                }}
-                className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 min-h-[44px] text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
-              >
-                {t('gmail.disconnect')}
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setGmailMessage(t('gmail.setupRequired'));
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-            >
-              <Mail className="h-4 w-4" />
-              {t('gmail.connect')}
-            </button>
-          )}
-
-          {gmailMessage && (
-            <p className="mt-2 text-xs text-muted-foreground">{gmailMessage}</p>
           )}
         </div>
       </section>

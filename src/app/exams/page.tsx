@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
-import { RefreshCw, AlertCircle, ClipboardList, Download } from 'lucide-react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
+import Link from 'next/link';
+import { RefreshCw, AlertCircle, ClipboardList, Download, BookOpen } from 'lucide-react';
 import { useExams } from '@/hooks/use-exams';
 import { useUserGroup } from '@/hooks/use-user-group';
 import { useLanguage } from '@/i18n';
@@ -9,6 +10,8 @@ import { ExamDayGroup } from '@/components/exams/exam-day-group';
 import { generateBulkICS, downloadICS } from '@/lib/calendar-export';
 import { cn } from '@/lib/utils';
 import type { Exam } from '@/types';
+
+const SUBJECTS_STORAGE_KEY = 'unischedule_subjects';
 
 function ExamSkeleton() {
   return (
@@ -50,12 +53,30 @@ function groupExamsByDate(exams: Exam[]): Map<string, Exam[]> {
 export default function ExamsPage() {
   const { group } = useUserGroup();
   const { lang, t } = useLanguage();
-  const { exams, loading, error, refetch } = useExams(
-    group?.groupCode || null,
-    group?.university || 'agruni'
-  );
   const [refreshing, setRefreshing] = useState(false);
   const [exported, setExported] = useState(false);
+
+  // Load selected subjects from localStorage
+  const [selectedSubjects, setSelectedSubjects] = useState<string[] | null>(null);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SUBJECTS_STORAGE_KEY);
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setSelectedSubjects(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const { exams, loading, error, refetch } = useExams(
+    group?.groupCode || null,
+    group?.university || 'agruni',
+    selectedSubjects
+  );
 
   const examsByDate = useMemo(() => groupExamsByDate(exams), [exams]);
   const sortedDates = useMemo(
@@ -176,14 +197,25 @@ export default function ExamsPage() {
           </div>
         </div>
 
-        {/* Group info */}
-        {group && (
-          <div className="rounded-lg bg-muted px-3 py-2">
-            <span className="font-mono text-xs font-medium text-primary">
-              {group.groupCode}
-            </span>
-          </div>
-        )}
+        {/* Group info + subject filter indicator */}
+        <div className="flex items-center gap-2">
+          {group && (
+            <div className="rounded-lg bg-muted px-3 py-2">
+              <span className="font-mono text-xs font-medium text-primary">
+                {group.groupCode}
+              </span>
+            </div>
+          )}
+          {selectedSubjects && (
+            <Link
+              href="/subjects"
+              className="flex items-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              {t('subjects.nSubjects').replace('{n}', String(selectedSubjects.length))}
+            </Link>
+          )}
+        </div>
 
         {/* Exam day groups with staggered fade-in */}
         {sortedDates.map((date, index) => (

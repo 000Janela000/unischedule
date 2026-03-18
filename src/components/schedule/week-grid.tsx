@@ -51,7 +51,7 @@ export function WeekGrid({ schedule, onLectureClick }: WeekGridProps) {
         </div>
 
         {/* Single day column + time axis */}
-        <div className="flex flex-1 overflow-x-auto rounded-b-lg border-x border-b border-border bg-card">
+        <div className="flex flex-1 rounded-b-lg border-x border-b border-border bg-card">
           {/* Time axis */}
           <div className="sticky left-0 z-20 flex flex-shrink-0 flex-col border-r border-border bg-card">
             <div className="relative flex-1" style={{ minHeight: `${totalHours * 60}px` }}>
