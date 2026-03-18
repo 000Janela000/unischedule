@@ -5,13 +5,24 @@ let cachedServiceAuth: GoogleAuth | null = null;
 let cachedOAuth2Client: OAuth2Client | null = null;
 
 /**
- * Service Account auth - for the public exam sheet (more reliable than gviz).
+ * Service Account auth - for local development with key file.
+ * Falls back to OAuth2 if key file not available (Vercel deployment).
  */
-export function getGoogleAuth(): GoogleAuth {
+export function getGoogleAuth(): GoogleAuth | OAuth2Client {
+  // If OAuth2 credentials are available, prefer them (works on Vercel)
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+  if (clientId && clientSecret && refreshToken) {
+    return getOAuth2Client();
+  }
+
+  // Fall back to service account key file (local dev)
   if (cachedServiceAuth) return cachedServiceAuth;
 
   const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
-  if (!keyPath) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY_PATH not set');
+  if (!keyPath) throw new Error('Either GOOGLE_CLIENT_ID+SECRET+REFRESH_TOKEN or GOOGLE_SERVICE_ACCOUNT_KEY_PATH must be set');
 
   cachedServiceAuth = new GoogleAuth({
     keyFile: keyPath,
@@ -21,8 +32,8 @@ export function getGoogleAuth(): GoogleAuth {
 }
 
 /**
- * OAuth2 client - for the protected lecture sheet (user's uni account).
- * Uses a one-time refresh token that auto-refreshes.
+ * OAuth2 client - uses the uni account's refresh token.
+ * Works for both exam sheet (public) and lecture sheet (private).
  */
 export function getOAuth2Client(): OAuth2Client {
   if (cachedOAuth2Client) return cachedOAuth2Client;
