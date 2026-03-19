@@ -1,54 +1,213 @@
 # v0.dev Design Prompts for UniHub v2
 
-Use these prompts at https://v0.dev to generate designs. Share the output code/screenshots and they'll be integrated into the project.
+Go to https://v0.dev and paste each prompt. Don't select a project — just generate freely. Copy the code/screenshot and share it. The codebase will be adapted to match the new design.
+
+**Don't worry about matching current styles** — we want a fresh, cohesive design. The code will be reworked to match whatever v0 generates.
+
+---
 
 ## Prompt 1: Login Page
+
 ```
-A modern login page for "UniHub" — a Georgian university student portal. Centered card with a geometric blue-purple gradient logo at top. "UniHub" title with "სტუდენტის პორტალი" subtitle in Georgian. A single "Sign in with Google" button (white bg, Google icon, full width). Below: small text "Only @agruni.edu.ge emails". Dark mode support. Background: subtle gradient mesh. Use shadcn/ui, Tailwind, Next.js. Colors: indigo-600 primary (#6366f1).
+Build a beautiful modern login page for "UniHub" — a university student portal for Georgian students.
+
+Requirements:
+- Full-screen centered layout, no navbar or sidebar
+- App logo area at top: a geometric blue-to-purple gradient icon + "UniHub" wordmark + "სტუდენტის პორტალი" subtitle (Georgian for "Student Portal")
+- Single "Sign in with Google" button — large, prominent, full-width, white background with Google "G" icon on the left
+- Below the button: small muted text "მხოლოდ @agruni.edu.ge ელ-ფოსტა" (meaning "Only @agruni.edu.ge emails accepted")
+- Background: subtle animated gradient mesh or soft gradient from indigo to purple
+- Dark mode variant
+- Mobile responsive (looks great on phone and desktop)
+- Premium, clean, minimalist feel — like Linear or Vercel's login pages
+- Use shadcn/ui components, Tailwind CSS, lucide-react icons, Next.js "use client"
 ```
 
-## Prompt 2: Dashboard (Home)
-```
-A student portal dashboard for "UniHub". Top: greeting "Hello, [Name]" with today's date. Cards grid layout:
-1. "Today's Schedule" card — list of today's lectures with times, rooms, subjects
-2. "Upcoming Exams" card — next 3 exams with countdown badges (days remaining)
-3. "GPA" card — current GPA number large, semester trend sparkline
-4. "Quick Links" card — EMIS, Email, Library buttons
-5. "Recent Conspects" card — latest uploaded notes with ratings
+## Prompt 2: Dashboard (Home Page)
 
-Sidebar navigation: Dashboard, Schedule, Exams, Grades, Conspects, Profile.
-Bottom nav for mobile with 4 tabs: Home, Schedule, Exams, More.
-Use shadcn/ui + Tailwind. Primary color: indigo (#6366f1). Dark mode. Georgian language support. Modern, clean, card-based.
+```
+Build a student portal dashboard home page for "UniHub". This is what students see after logging in.
+
+Layout:
+- Top section: "გამარჯობა, [Name]" greeting (Georgian for "Hello") with today's date and a small profile avatar
+- Below: responsive card grid (2 columns on desktop, 1 on mobile)
+
+Cards to include:
+1. "დღის ცხრილი" (Today's Schedule) — vertical list of today's lectures showing: time (10:00-11:00), subject name, room number badge, lecturer name. If no classes: "დღეს ლექციები არ არის" (No classes today)
+2. "მომავალი გამოცდები" (Upcoming Exams) — next 3 exams with: date, subject, exam type badge (midterm/final/quiz), countdown showing "3 დღეში" (in 3 days) or "ხვალ" (tomorrow). Color-coded left borders.
+3. "GPA" — large GPA number (e.g., 3.45), small semester label, tiny sparkline trend. If not connected: "EMIS-თან დაკავშირება" (Connect to EMIS) button
+4. "სწრაფი ბმულები" (Quick Links) — icon buttons grid: EMIS, Email, Library, University Website
+5. "ბოლო კონსპექტები" (Recent Conspects) — 3 latest uploaded notes with: title, subject tag, vote count, file type icon
+
+Navigation:
+- Desktop: left sidebar (240px) with items: Dashboard, Schedule (ცხრილი), Exams (გამოცდები), Grades (ნიშნები), Conspects (კონსპექტები), Profile (პროფილი)
+- Mobile: bottom tab bar with 4 items: Home, Schedule, Exams, More (opens drawer with Grades, Conspects, Profile)
+- Active state: indigo highlight with subtle background
+
+Design:
+- Primary color: indigo/blue-purple (#6366f1)
+- Cards: rounded-xl, subtle border, soft shadow on hover
+- Dark mode support
+- Modern, spacious, premium feel
+- Use shadcn/ui, Tailwind CSS, lucide-react, Next.js "use client"
 ```
 
 ## Prompt 3: Schedule Page
+
 ```
-A weekly class schedule view for university students. Day tabs at top (Monday-Friday) showing full day names with lecture count badges. Below: vertical timeline of lecture cards for selected day. Each card: time range on left (mono font), subject name (bold), lecturer name (muted), room number (badge), lecture type indicator (colored dot: green=lecture, blue=seminar, purple=lab). Timeline dots connecting cards. Search bar at top. Subject filter pills. Use shadcn/ui + Tailwind. Indigo primary. Dark mode.
+Build a weekly class schedule page for a university student portal called "UniHub".
+
+Layout:
+- Top: page title "ცხრილი" (Schedule) with group code badge (e.g., "con24-01") and subject count
+- Day selector: horizontal tab bar with full day names in Georgian (ორშაბათი, სამშაბათი, ოთხშაბათი, ხუთშაბათი, პარასკევი). Each tab shows lecture count badge. Active tab: filled indigo. Auto-selects today.
+- Below tabs: vertical timeline of lecture cards for the selected day
+
+Each lecture card:
+- Left: time range in monospace font (e.g., "12:20 — 13:20")
+- Center: subject name (semibold), lecturer name (muted small text)
+- Right: room number in a badge
+- Left border color indicates type: indigo=lecture, blue=seminar, purple=lab
+- Timeline dots connecting cards vertically
+
+Empty state: calendar icon + "ლექციები არ არის" (No classes)
+
+Design:
+- Cards: rounded-xl, subtle border, hover shadow
+- Timeline: thin vertical line with dots at each lecture
+- Dark mode support
+- Primary: indigo (#6366f1)
+- Use shadcn/ui, Tailwind CSS, lucide-react, Next.js "use client"
 ```
 
 ## Prompt 4: Exams Page
+
 ```
-An exam schedule page for university students. Search bar at top. Below: exam cards grouped by date with sticky date headers. Each card: left color border (blue=midterm, red=final, purple=quiz), time in a circle, subject name bold, exam type badge, countdown timer showing "3 days" or "Tomorrow", lecturers, group code. Expandable on click to show full details + "Add to Calendar" button. Export All button in header. Use shadcn/ui + Tailwind. Indigo primary. Dark mode.
+Build an exam schedule page for a university student portal called "UniHub".
+
+Layout:
+- Top: page title "გამოცდები" (Exams) with exam count and "Export All" button
+- Search bar: rounded, with search icon, placeholder "ძებნა საგნის ან ლექტორის მიხედვით..." (Search by subject or lecturer)
+- Group badge showing current group code (e.g., "con24-01")
+
+Exam cards grouped by date:
+- Sticky date headers showing: full date + day name in Georgian (e.g., "21 ოქტომბერი, ორშაბათი")
+- Each card:
+  - Left: 3px color border (blue=midterm/შუალედური, red=final/ფინალური, purple=quiz/ქვიზი, gray=retake/აღდგენა)
+  - Time in a subtle background circle
+  - Subject name (semibold)
+  - Exam type badge (pill shape, colored)
+  - Countdown: "3 დღეში" (in 3 days), "ხვალ" (tomorrow), "დღეს" (today) — urgent ones highlighted
+  - Expandable: click to show lecturers, groups, student count, "Add to Calendar" button
+
+Empty state: clipboard icon + "გამოცდები ვერ მოიძებნა" (No exams found)
+
+Design:
+- Cards: rounded-xl, expandable with smooth animation
+- Staggered fade-in animation on cards
+- Dark mode support
+- Primary: indigo (#6366f1)
+- Use shadcn/ui, Tailwind CSS, lucide-react, Next.js "use client"
 ```
 
 ## Prompt 5: Grades/GPA Page
+
 ```
-A grades and GPA tracker for university students. Top: large GPA display (e.g. "3.45") with semester selector dropdown. GPA trend chart (line chart across semesters). Below: table/cards of courses with columns: Course Name, Credits, Grade (letter), Points, Status (passed/failed). Color coded: green for passed, red for failed. Semester filter. Credit summary (earned vs required). Use shadcn/ui + Tailwind + recharts for charts. Indigo primary. Dark mode.
+Build a grades and GPA tracker page for a university student portal called "UniHub".
+
+Layout:
+- Top: page title "ნიშნები" (Grades)
+- Hero section: large GPA display (e.g., "3.45" in huge text), semester label, credit summary (earned/required)
+- GPA trend: line chart showing GPA across semesters (use recharts library)
+- Semester selector: dropdown or horizontal pills
+- Course list: table or cards showing per-course data:
+  - Course name
+  - Credits (ECTS)
+  - Grade (letter: A, B, C, D, F)
+  - Points (numeric)
+  - Status badge: green "ჩაბარებული" (Passed) or red "ვერ ჩააბარა" (Failed)
+
+If EMIS not connected:
+- Show centered card with lock icon
+- "EMIS-თან დაკავშირება საჭიროა" (EMIS connection required)
+- "Chrome გაფართოების ინსტალაცია" (Install Chrome extension) button
+- Step-by-step instructions
+
+Design:
+- GPA number: huge, bold, indigo colored
+- Chart: subtle, clean, indigo line on muted grid
+- Course cards: alternating subtle backgrounds
+- Dark mode support
+- Primary: indigo (#6366f1)
+- Use shadcn/ui, Tailwind CSS, lucide-react, recharts, Next.js "use client"
 ```
 
-## Prompt 6: Conspects/Notes Page
+## Prompt 6: Conspects/Notes Sharing Page
+
 ```
-A student note-sharing platform page. Top: search bar + filters (subject dropdown, sort by: newest/top-rated/most-downloaded). Upload button (prominent, top right). Grid of conspect cards: document icon/thumbnail, title, subject tag, author name, date, rating (upvote/downvote count), download count, file type badge (PDF/DOCX/Link). Click card to preview/download. Upload modal: title, subject selector, file upload (drag & drop) or URL input, description textarea. Use shadcn/ui + Tailwind. Indigo primary. Dark mode.
+Build a student note-sharing platform page for "UniHub" — like a simplified StuDocu for a single university.
+
+Layout:
+- Top: page title "კონსპექტები" (Conspects) + prominent "ატვირთვა" (Upload) button
+- Filters row: search bar + subject dropdown + sort dropdown (newest, top-rated, most-downloaded)
+- Grid of conspect cards (2 columns desktop, 1 mobile)
+
+Each conspect card:
+- Document type icon (PDF red, DOCX blue, Link green, Image purple)
+- Title (semibold)
+- Subject tag (pill badge)
+- Author name + avatar (small)
+- Upload date
+- Vote section: upvote/downvote arrows with count between
+- Download count with icon
+- Click to open detail view
+
+Upload flow (modal or separate page):
+- Title input
+- Subject selector (dropdown of all available subjects)
+- File upload zone (drag & drop area, accepts PDF, DOCX, images) OR URL input toggle
+- Description textarea (optional)
+- Submit button
+
+Design:
+- Cards: rounded-xl, hover lift effect, subtle shadow
+- Vote buttons: compact, vertical arrows with count
+- Upload zone: dashed border, icon in center, drag feedback
+- Dark mode support
+- Primary: indigo (#6366f1)
+- Use shadcn/ui, Tailwind CSS, lucide-react, Next.js "use client"
 ```
 
 ## Prompt 7: Profile Page
+
 ```
-A user profile page for university student portal. Top: large profile photo (circle), full name, email badge (@agruni.edu.ge). Info cards: Faculty, Year, Group Code, Student ID. EMIS connection status (connected/disconnected with toggle). Settings: Language (Georgian/English toggle), Theme (Light/Dark/System), Notifications toggle. Sign out button at bottom. Use shadcn/ui + Tailwind. Indigo primary. Dark mode.
+Build a user profile page for "UniHub" — a university student portal.
+
+Layout:
+- Top section: large profile photo (circle, 96px), full name (large bold), email with @agruni.edu.ge badge
+- Info grid (2 columns): Faculty name, Year, Group Code, Student ID (if from EMIS)
+- EMIS Connection card:
+  - Connected: green status dot, "EMIS დაკავშირებულია" + last sync time
+  - Not connected: orange status, "Chrome გაფართოება საჭიროა" with install button
+- Settings section in cards:
+  - Language: "ქართული" / "English" segmented control with flag-like indicators
+  - Theme: Sun/Moon/Monitor icons for Light/Dark/System
+  - Notifications: toggle switch
+- "ჯგუფის შეცვლა" (Change Group) button
+- "გასვლა" (Sign Out) button at bottom (red-ish, subtle)
+
+Design:
+- Clean card sections with spacing
+- Profile photo with subtle ring/border
+- Settings as segmented controls, not dropdowns
+- Dark mode support
+- Primary: indigo (#6366f1)
+- Use shadcn/ui, Tailwind CSS, lucide-react, Next.js "use client"
 ```
 
-## Tips for v0.dev
-- Add "Use shadcn/ui + Tailwind" to every prompt
-- Mention "indigo primary (#6366f1)" for consistent colors
-- Add "Dark mode" for dark theme support
-- The generated code uses shadcn/ui components which we already have
-- Copy the code and share it — I'll adapt it to the existing project patterns
+---
+
+## Tips
+- Generate each page separately
+- If the result isn't great, iterate: "make it more spacious", "use darker cards", "add more Georgian text"
+- Copy the generated code and share it — the codebase will be fully reworked to match
+- Don't worry about data — all data connections will be wired after design integration
