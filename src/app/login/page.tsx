@@ -17,7 +17,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+    <main className="fixed inset-0 flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 z-10">
       {/* Animated Gradient Background */}
       <AnimatedGradientBackground />
 

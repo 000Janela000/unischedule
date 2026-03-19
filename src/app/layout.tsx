@@ -55,7 +55,7 @@ export default function RootLayout({
         <AuthSessionProvider>
         <LanguageProvider>
           <ServiceWorkerRegistrar />
-          <div className="flex h-screen bg-background">
+          <div className="flex h-screen">
             <SidebarNav />
             <MainContent>{children}</MainContent>
           </div>

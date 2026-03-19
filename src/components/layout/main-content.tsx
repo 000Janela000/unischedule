@@ -10,14 +10,14 @@ export function MainContent({ children }: { children: React.ReactNode }) {
 
   if (isFullScreen) {
     return (
-      <div className="flex flex-1 flex-col overflow-auto">
+      <div className="flex flex-1 flex-col overflow-auto bg-transparent">
         {children}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-auto lg:ml-60">
+    <div className="flex flex-1 flex-col overflow-auto lg:ml-60 bg-background">
       <Header />
       <InstallPrompt />
       <main className="flex-1">{children}</main>

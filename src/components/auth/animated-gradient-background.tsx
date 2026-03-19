@@ -116,7 +116,7 @@ export function AnimatedGradientBackground() {
   if (prefersReducedMotion) {
     return (
       <div
-        className="fixed inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-900"
+        className="fixed inset-0 z-0 bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-900"
         aria-hidden="true"
       />
     )
@@ -125,7 +125,7 @@ export function AnimatedGradientBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 -z-10"
+      className="fixed inset-0 z-0"
       aria-hidden="true"
     />
   )
