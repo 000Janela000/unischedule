@@ -1,18 +1,21 @@
 schema: spec-driven
 
 context: |
-  Project: UniSchedule — University schedule & exam tracker for Agricultural University of Georgia (agruni.edu.ge)
-  Tech stack: Next.js 14 (App Router), TypeScript strict, Tailwind CSS, shadcn/ui, Framer Motion, vaul (bottom sheets), sonner (toasts), lucide-react, papaparse (CSV), xlsx (Excel), date-fns, googleapis + google-auth-library, NextAuth.js v5, web-push + Service Worker
+  Project: UniHub — Full student portal for Agricultural University of Georgia (agruni.edu.ge)
+  Tech stack: Next.js 14 (App Router), TypeScript strict, Tailwind CSS, shadcn/ui, lucide-react, papaparse, xlsx, date-fns, googleapis, google-auth-library, NextAuth.js v5, web-push, Service Worker (PWA)
   Architecture: Next.js App Router with src/ directory, API routes for server-side data fetching
   Key rules:
     - Georgian language primary, English secondary (i18n via React context)
-    - All data flows through server-side API routes with 15-minute TTL cache
-    - Exam schedule fetched from public Google Sheets via gviz CSV API (no auth needed)
-    - Lecture schedule fetched via Service Account or Admin OAuth (protected sheet)
-    - Group codes (e.g., chem24-01, bio24-01) decoded to faculty/year/program
+    - All data flows through server-side API routes with 1-hour TTL cache (3 layers: memory → file → API)
+    - Exam schedule: Sheets API v4 batchGet (166 tabs, 1693 exams)
+    - Lecture schedule: Drive API downloads xlsx (1741 lectures)
+    - Authentication: NextAuth.js v5, Google provider, @agruni.edu.ge restriction
+    - EMIS integration planned via Chrome extension (token capture from emis.campus.edu.ge)
+    - Group codes (con24-01, chem24-01) decoded to faculty/year/program
+    - Subject matching: exact → Roman↔Arabic → parenthetical strip (theory preferred)
     - PWA with Service Worker for offline support and push notifications
-    - Mobile-first responsive design with bottom navigation
-    - No student needs to sign in for core experience (exam + lecture viewing)
+    - Mobile-first responsive design with bottom navigation + desktop sidebar
+    - Primary color: indigo (#6366f1)
     - Path alias @/* → src/*
   Conventions: see CLAUDE.md for full details
 
@@ -21,4 +24,3 @@ rules:
     - Reference specific files/directories when possible
     - Keep tasks scoped to a single feature or module
     - Include test expectations where applicable
-    - Mark phase number for each task group
