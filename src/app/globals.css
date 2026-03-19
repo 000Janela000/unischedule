@@ -6,55 +6,55 @@
 
 @layer base {
   :root {
-    --background: oklch(0.99 0.005 270);
-    --foreground: oklch(0.13 0.02 270);
+    --background: oklch(0.98 0.005 280);
+    --foreground: oklch(0.15 0.02 280);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.13 0.02 270);
-    --primary: oklch(0.55 0.22 264);
+    --card-foreground: oklch(0.15 0.02 280);
+    --primary: oklch(0.55 0.25 280);
     --primary-foreground: oklch(0.99 0 0);
-    --secondary: oklch(0.96 0.01 270);
-    --secondary-foreground: oklch(0.2 0.02 270);
-    --muted: oklch(0.96 0.01 270);
-    --muted-foreground: oklch(0.5 0.02 270);
-    --accent: oklch(0.95 0.015 270);
-    --accent-foreground: oklch(0.2 0.02 270);
+    --secondary: oklch(0.95 0.02 280);
+    --secondary-foreground: oklch(0.2 0.02 280);
+    --muted: oklch(0.94 0.015 280);
+    --muted-foreground: oklch(0.5 0.03 280);
+    --accent: oklch(0.6 0.2 250);
+    --accent-foreground: oklch(0.99 0 0);
     --destructive: oklch(0.577 0.245 27);
     --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.91 0.01 270);
-    --input: oklch(0.91 0.01 270);
-    --ring: oklch(0.55 0.22 264);
+    --border: oklch(0.9 0.02 280);
+    --input: oklch(0.92 0.015 280);
+    --ring: oklch(0.55 0.25 280);
     --radius: 0.75rem;
 
-    --exam-midterm: oklch(0.55 0.2 264);
+    --exam-midterm: oklch(0.55 0.25 280);
     --exam-final: oklch(0.577 0.245 27);
     --exam-quiz: oklch(0.55 0.2 300);
-    --exam-retake: oklch(0.5 0.03 270);
+    --exam-retake: oklch(0.5 0.03 280);
     --exam-additional: oklch(0.65 0.15 75);
   }
 
   .dark {
-    --background: oklch(0.14 0.02 270);
-    --foreground: oklch(0.95 0 0);
-    --card: oklch(0.18 0.025 270);
-    --card-foreground: oklch(0.95 0 0);
-    --primary: oklch(0.65 0.22 264);
-    --primary-foreground: oklch(0.99 0 0);
-    --secondary: oklch(0.22 0.03 270);
-    --secondary-foreground: oklch(0.95 0 0);
-    --muted: oklch(0.22 0.025 270);
-    --muted-foreground: oklch(0.6 0.03 270);
-    --accent: oklch(0.25 0.03 270);
-    --accent-foreground: oklch(0.95 0 0);
-    --destructive: oklch(0.65 0.22 25);
-    --destructive-foreground: oklch(0.95 0 0);
-    --border: oklch(0.28 0.03 270);
-    --input: oklch(0.25 0.03 270);
-    --ring: oklch(0.65 0.22 264);
+    --background: oklch(0.12 0.02 280);
+    --foreground: oklch(0.95 0.01 280);
+    --card: oklch(0.16 0.025 280);
+    --card-foreground: oklch(0.95 0.01 280);
+    --primary: oklch(0.65 0.22 280);
+    --primary-foreground: oklch(0.12 0.02 280);
+    --secondary: oklch(0.22 0.03 280);
+    --secondary-foreground: oklch(0.95 0.01 280);
+    --muted: oklch(0.2 0.025 280);
+    --muted-foreground: oklch(0.65 0.03 280);
+    --accent: oklch(0.55 0.2 250);
+    --accent-foreground: oklch(0.95 0.01 280);
+    --destructive: oklch(0.5 0.2 25);
+    --destructive-foreground: oklch(0.95 0.01 280);
+    --border: oklch(0.25 0.03 280);
+    --input: oklch(0.2 0.025 280);
+    --ring: oklch(0.65 0.22 280);
 
-    --exam-midterm: oklch(0.65 0.2 264);
+    --exam-midterm: oklch(0.65 0.22 280);
     --exam-final: oklch(0.65 0.22 25);
     --exam-quiz: oklch(0.65 0.2 300);
-    --exam-retake: oklch(0.5 0.03 270);
+    --exam-retake: oklch(0.5 0.03 280);
     --exam-additional: oklch(0.7 0.15 80);
   }
 
