@@ -1,12 +1,12 @@
 // UniHub EMIS Connector — Content Script
 // Runs on emis.campus.edu.ge pages
-// Reads login data from EMIS and stores securely, then redirects to UniHub
+// Reads login data from EMIS and stores securely
 
 const CHECK_INTERVAL = 2000;
 const MAX_ATTEMPTS = 30;
-const UNIHUB_URL = "https://unihub-edu.vercel.app/dashboard";
 
 let attempts = 0;
+let alreadyCaptured = false;
 
 function isValidJwt(token) {
   if (!token || typeof token !== "string") return false;
@@ -22,22 +22,23 @@ function getToken() {
   }
 }
 
-function captureAndRedirect(token) {
+function captureAndClose(token) {
+  if (alreadyCaptured) return;
+  alreadyCaptured = true;
+
   chrome.storage.local.set({
     emisToken: token,
     emisConnected: true,
     lastSync: new Date().toISOString(),
   }, () => {
-    console.log("[UniHub] EMIS data synced");
+    console.log("[UniHub] EMIS data synced to extension storage");
 
-    // Check if UniHub opened this tab (via extension popup or setup page)
-    // If so, close this tab and focus UniHub
+    // If user came from UniHub (via extension popup or setup page),
+    // just close this EMIS tab — sync.js on the UniHub tab will pick up the token
     chrome.storage.local.get(["returnToUniHub"], (data) => {
       if (data.returnToUniHub) {
         chrome.storage.local.remove("returnToUniHub");
-        // Open UniHub and close this EMIS tab
-        window.open(UNIHUB_URL, "_blank");
-        setTimeout(() => window.close(), 500);
+        window.close();
       }
     });
   });
@@ -49,7 +50,7 @@ function checkAndCapture() {
 
   const token = getToken();
   if (token && isValidJwt(token)) {
-    captureAndRedirect(token);
+    captureAndClose(token);
   } else if (attempts < MAX_ATTEMPTS) {
     setTimeout(checkAndCapture, CHECK_INTERVAL);
   }
@@ -61,7 +62,7 @@ checkAndCapture();
 // Listen for storage changes (user logs in while page is open)
 window.addEventListener("storage", (e) => {
   if (e.key === "Student-Token" && e.newValue && isValidJwt(e.newValue)) {
-    captureAndRedirect(e.newValue);
+    captureAndClose(e.newValue);
   }
 });
 
@@ -70,7 +71,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     const token = getToken();
     if (token && isValidJwt(token)) {
-      captureAndRedirect(token);
+      captureAndClose(token);
     }
   }
 });

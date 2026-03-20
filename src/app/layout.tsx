@@ -22,9 +22,11 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   appleWebApp: {
-    capable: true,
     statusBarStyle: "default",
     title: "UniHub",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
 };
 

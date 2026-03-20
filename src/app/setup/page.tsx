@@ -1,36 +1,51 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Puzzle, Globe, CheckCircle2, ExternalLink, Loader2, Check, AlertCircle } from "lucide-react";
-import { useEmis } from "@/hooks/use-emis";
+import { Moon, Sun, Puzzle, Globe, CheckCircle2, ExternalLink, Loader2, Check } from "lucide-react";
 
 export default function ExtensionSetupPage() {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
-  const { status, loading, error, syncToken } = useEmis();
   const router = useRouter();
+  const [connected, setConnected] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Also check server-side connection on mount
-  const [serverConnected, setServerConnected] = useState(false);
-  useEffect(() => {
-    fetch("/api/emis/token")
-      .then((r) => r.json())
-      .then((d) => { if (d.connected) setServerConnected(true); })
-      .catch(() => {});
+  // Check server-side connection (extension POSTs token directly to API)
+  const checkConnection = useCallback(async () => {
+    try {
+      const r = await fetch("/api/emis/token");
+      const d = await r.json();
+      if (d.connected) {
+        setConnected(true);
+        return true;
+      }
+    } catch {}
+    return false;
   }, []);
 
-  const isConnected = status.connected || serverConnected;
+  // Check on mount
+  useEffect(() => { checkConnection(); }, [checkConnection]);
 
-  const handleSync = async () => {
-    const ok = await syncToken();
-    if (ok) {
-      setServerConnected(true);
-    }
+  // Poll every 3s while not connected (extension will POST token from EMIS tab)
+  useEffect(() => {
+    if (connected) return;
+    const interval = setInterval(async () => {
+      const ok = await checkConnection();
+      if (ok) clearInterval(interval);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [connected, checkConnection]);
+
+  // Manual check button
+  const handleCheck = async () => {
+    setChecking(true);
+    await checkConnection();
+    setChecking(false);
   };
 
   const steps = [
@@ -39,7 +54,7 @@ export default function ExtensionSetupPage() {
       title: "გაფართოების დაყენება",
       description: "დააინსტალირეთ UniHub Chrome გაფართოება",
       action: (
-        <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
+        <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
           Chrome Web Store
           <ExternalLink className="h-3 w-3" />
         </a>
@@ -48,9 +63,9 @@ export default function ExtensionSetupPage() {
     {
       icon: Globe,
       title: "EMIS-ზე შესვლა",
-      description: "გადადით emis.campus.edu.ge — ავტომატურად შეხვალთ",
+      description: "გახსენით EMIS — გაფართოება ავტომატურად წამოიღებს მონაცემებს",
       action: (
-        <a href="https://emis.campus.edu.ge" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
+        <a href="https://emis.campus.edu.ge" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
           EMIS გახსნა
           <ExternalLink className="h-3 w-3" />
         </a>
@@ -58,8 +73,8 @@ export default function ExtensionSetupPage() {
     },
     {
       icon: CheckCircle2,
-      title: "სინქრონიზაცია",
-      description: "დააჭირეთ ქვემოთ — მონაცემები ავტომატურად წამოიღება",
+      title: "ავტომატური სინქრონიზაცია",
+      description: "EMIS-ზე შესვლის შემდეგ კავშირი ავტომატურად დამყარდება",
       action: null,
     },
   ];
@@ -83,13 +98,13 @@ export default function ExtensionSetupPage() {
       )}
 
       <div className="relative z-10 w-full max-w-xl">
-        <div className="rounded-2xl border border-border/50 bg-card/80 p-8 shadow-2xl shadow-primary/5 backdrop-blur-xl md:p-10">
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
-              <Puzzle className="h-7 w-7 text-primary" />
+        <div className="rounded-2xl border border-border/50 bg-card/80 p-6 shadow-2xl shadow-primary/5 backdrop-blur-xl md:p-8">
+          <div className="mb-5 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+              <Puzzle className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">EMIS-თან დაკავშირება</h1>
-            <p className="mt-2 text-muted-foreground">გაფართოება კითხულობს თქვენს მონაცემებს უნივერსიტეტის სისტემიდან</p>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">EMIS-თან დაკავშირება</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">გაფართოება კითხულობს თქვენს მონაცემებს უნივერსიტეტის სისტემიდან</p>
           </div>
 
           <div className="space-y-1">
@@ -99,13 +114,13 @@ export default function ExtensionSetupPage() {
 
               return (
                 <div key={index} className="relative">
-                  {!isLast && <div className="absolute left-6 top-14 h-[calc(100%-2rem)] w-px bg-border/50" />}
-                  <div className="flex gap-4 rounded-xl p-4 transition-colors hover:bg-secondary/30">
-                    <div className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ${isConnected ? "bg-accent/20 text-accent" : "bg-secondary text-muted-foreground"}`}>
-                      {isConnected ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
-                      <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">{index + 1}</span>
+                  {!isLast && <div className="absolute left-5 top-12 h-[calc(100%-1.5rem)] w-px bg-border/50" />}
+                  <div className="flex gap-3 rounded-xl p-3 transition-colors hover:bg-secondary/30">
+                    <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${connected ? "bg-accent/20 text-accent" : "bg-secondary text-muted-foreground"}`}>
+                      {connected ? <Check className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
+                      <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">{index + 1}</span>
                     </div>
-                    <div className="flex-1 pt-1">
+                    <div className="flex-1">
                       <h3 className="font-medium text-foreground">{step.title}</h3>
                       <p className="mt-0.5 text-sm text-muted-foreground">{step.description}</p>
                       {step.action}
@@ -116,26 +131,18 @@ export default function ExtensionSetupPage() {
             })}
           </div>
 
-          <div className="mt-8 space-y-4">
+          <div className="mt-5 space-y-3">
             {/* Status */}
-            <div className={`flex items-center justify-center gap-2 rounded-lg p-3 text-sm ${isConnected ? "bg-accent/10 text-accent" : "bg-secondary/50 text-muted-foreground"}`}>
-              {isConnected ? (
+            <div className={`flex items-center justify-center gap-2 rounded-lg p-3 text-sm ${connected ? "bg-accent/10 text-accent" : "bg-secondary/50 text-muted-foreground"}`}>
+              {connected ? (
                 <><CheckCircle2 className="h-4 w-4" /><span>EMIS დაკავშირებულია</span></>
               ) : (
-                <><div className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground" /><span>მოლოდინი...</span></>
+                <><div className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground" /><span>მოლოდინი... ავტომატურად შემოწმდება</span></>
               )}
             </div>
 
-            {/* Error */}
-            {error && (
-              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
             {/* Action */}
-            {isConnected ? (
+            {connected ? (
               <Button
                 onClick={() => router.push("/dashboard")}
                 className="w-full gap-2 py-6 text-base font-medium shadow-lg shadow-primary/20"
@@ -144,20 +151,21 @@ export default function ExtensionSetupPage() {
               </Button>
             ) : (
               <Button
-                onClick={handleSync}
-                disabled={loading}
-                className="w-full gap-2 py-6 text-base font-medium shadow-lg shadow-primary/20 disabled:opacity-70"
+                onClick={handleCheck}
+                disabled={checking}
+                variant="outline"
+                className="w-full gap-2 py-6 text-base font-medium"
               >
-                {loading ? (
+                {checking ? (
                   <><Loader2 className="h-4 w-4 animate-spin" />მოწმდება...</>
                 ) : (
-                  <>სინქრონიზაცია<CheckCircle2 className="h-4 w-4" /></>
+                  <>შემოწმება<CheckCircle2 className="h-4 w-4" /></>
                 )}
               </Button>
             )}
 
             {/* Skip option */}
-            {!isConnected && (
+            {!connected && (
               <button
                 onClick={() => router.push("/dashboard")}
                 className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
