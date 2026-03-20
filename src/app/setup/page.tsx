@@ -1,24 +1,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Puzzle, Globe, CheckCircle2, ExternalLink, Loader2, Check } from "lucide-react";
+import { Moon, Sun, Puzzle, Globe, CheckCircle2, ExternalLink, Loader2, Check, AlertCircle } from "lucide-react";
+import { useEmis } from "@/hooks/use-emis";
 
 export default function ExtensionSetupPage() {
   const [mounted, setMounted] = useState(false);
-  const [extensionInstalled, setExtensionInstalled] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { status, loading, error, syncToken } = useEmis();
+  const router = useRouter();
 
   useEffect(() => { setMounted(true); }, []);
 
-  const handleConfirmInstalled = () => {
-    setIsChecking(true);
-    setTimeout(() => {
-      setExtensionInstalled(true);
-      setIsChecking(false);
-    }, 1500);
+  // Also check server-side connection on mount
+  const [serverConnected, setServerConnected] = useState(false);
+  useEffect(() => {
+    fetch("/api/emis/token")
+      .then((r) => r.json())
+      .then((d) => { if (d.connected) setServerConnected(true); })
+      .catch(() => {});
+  }, []);
+
+  const isConnected = status.connected || serverConnected;
+
+  const handleSync = async () => {
+    const ok = await syncToken();
+    if (ok) {
+      setServerConnected(true);
+    }
   };
 
   const steps = [
@@ -28,9 +40,9 @@ export default function ExtensionSetupPage() {
       description: "დააინსტალირეთ UniHub Chrome გაფართოება",
       action: (
         <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
-            Chrome Web Store
-            <ExternalLink className="h-3 w-3" />
-          </a>
+          Chrome Web Store
+          <ExternalLink className="h-3 w-3" />
+        </a>
       ),
     },
     {
@@ -39,15 +51,15 @@ export default function ExtensionSetupPage() {
       description: "გადადით emis.campus.edu.ge — ავტომატურად შეხვალთ",
       action: (
         <a href="https://emis.campus.edu.ge" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
-            EMIS გახსნა
-            <ExternalLink className="h-3 w-3" />
-          </a>
+          EMIS გახსნა
+          <ExternalLink className="h-3 w-3" />
+        </a>
       ),
     },
     {
       icon: CheckCircle2,
-      title: "დაბრუნება UniHub-ზე",
-      description: "თქვენი მონაცემები ავტომატურად სინქრონიზდება",
+      title: "სინქრონიზაცია",
+      description: "დააჭირეთ ქვემოთ — მონაცემები ავტომატურად წამოიღება",
       action: null,
     },
   ];
@@ -83,15 +95,14 @@ export default function ExtensionSetupPage() {
           <div className="space-y-1">
             {steps.map((step, index) => {
               const StepIcon = step.icon;
-              const isCompleted = extensionInstalled;
               const isLast = index === steps.length - 1;
 
               return (
                 <div key={index} className="relative">
                   {!isLast && <div className="absolute left-6 top-14 h-[calc(100%-2rem)] w-px bg-border/50" />}
                   <div className="flex gap-4 rounded-xl p-4 transition-colors hover:bg-secondary/30">
-                    <div className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ${isCompleted ? "bg-accent/20 text-accent" : "bg-secondary text-muted-foreground"}`}>
-                      {isCompleted ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
+                    <div className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ${isConnected ? "bg-accent/20 text-accent" : "bg-secondary text-muted-foreground"}`}>
+                      {isConnected ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
                       <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">{index + 1}</span>
                     </div>
                     <div className="flex-1 pt-1">
@@ -106,22 +117,53 @@ export default function ExtensionSetupPage() {
           </div>
 
           <div className="mt-8 space-y-4">
-            <div className={`flex items-center justify-center gap-2 rounded-lg p-3 text-sm ${extensionInstalled ? "bg-accent/10 text-accent" : "bg-secondary/50 text-muted-foreground"}`}>
-              {extensionInstalled ? (
-                <><CheckCircle2 className="h-4 w-4" /><span>გაფართოება დაკავშირებულია</span></>
+            {/* Status */}
+            <div className={`flex items-center justify-center gap-2 rounded-lg p-3 text-sm ${isConnected ? "bg-accent/10 text-accent" : "bg-secondary/50 text-muted-foreground"}`}>
+              {isConnected ? (
+                <><CheckCircle2 className="h-4 w-4" /><span>EMIS დაკავშირებულია</span></>
               ) : (
-                <><div className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground" /><span>გაფართოების მოლოდინი...</span></>
+                <><div className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground" /><span>მოლოდინი...</span></>
               )}
             </div>
 
-            {extensionInstalled ? (
-              <a href="/dashboard" className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-base font-medium text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors">
+            {/* Error */}
+            {error && (
+              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Action */}
+            {isConnected ? (
+              <Button
+                onClick={() => router.push("/dashboard")}
+                className="w-full gap-2 py-6 text-base font-medium shadow-lg shadow-primary/20"
+              >
                 გაგრძელება <CheckCircle2 className="h-4 w-4" />
-              </a>
-            ) : (
-              <Button onClick={handleConfirmInstalled} disabled={isChecking} className="w-full gap-2 py-6 text-base font-medium shadow-lg shadow-primary/20 disabled:opacity-70">
-                {isChecking ? (<><Loader2 className="h-4 w-4 animate-spin" />მოწმდება...</>) : (<>გაფართოება დაინსტალირებულია<CheckCircle2 className="h-4 w-4" /></>)}
               </Button>
+            ) : (
+              <Button
+                onClick={handleSync}
+                disabled={loading}
+                className="w-full gap-2 py-6 text-base font-medium shadow-lg shadow-primary/20 disabled:opacity-70"
+              >
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" />მოწმდება...</>
+                ) : (
+                  <>სინქრონიზაცია<CheckCircle2 className="h-4 w-4" /></>
+                )}
+              </Button>
+            )}
+
+            {/* Skip option */}
+            {!isConnected && (
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                გამოტოვება — მოგვიანებით დავაკავშირებ
+              </button>
             )}
           </div>
         </div>

@@ -13,62 +13,57 @@
 ```
 src/
 ├── app/
-│   ├── layout.tsx              # Root layout: AuthSessionProvider, LanguageProvider, nav
-│   ├── page.tsx                # Redirect: unauthenticated→/login, no group→/onboarding, else→/exams
-│   ├── login/page.tsx          # Google sign-in (@agruni.edu.ge only)
-│   ├── profile/page.tsx        # User profile + settings
+│   ├── layout.tsx              # Root layout: ThemeProvider + AuthSessionProvider
+│   ├── page.tsx                # Login page (Google sign-in, @agruni.edu.ge only)
 │   ├── onboarding/page.tsx     # Faculty → Year+Group wizard (2 steps)
-│   ├── subjects/page.tsx       # Subject selection (group subjects + all university subjects)
-│   ├── exams/page.tsx          # Exam list with search, countdowns, calendar export
-│   ├── schedule/page.tsx       # Weekly lecture schedule (card-based timeline)
-│   ├── settings/page.tsx       # Theme, language, notifications
+│   ├── setup/page.tsx          # EMIS Chrome Extension setup flow
+│   ├── dashboard/
+│   │   ├── layout.tsx          # Sidebar (desktop) + bottom nav (mobile) + auth guard
+│   │   ├── page.tsx            # Dashboard: today's schedule, upcoming exams, GPA, quick links
+│   │   ├── schedule/page.tsx   # Weekly schedule grid (real lecture data)
+│   │   ├── exams/page.tsx      # Exam list with search, filters, grouped by date
+│   │   ├── grades/page.tsx     # Grades + GPA (EMIS data when connected, setup prompt otherwise)
+│   │   └── settings/page.tsx   # Profile, theme, about, sign-out
 │   └── api/
 │       ├── auth/[...nextauth]/ # NextAuth.js Google provider
 │       ├── sheets/exams/       # Exam data: Sheets API batchGet (166 tabs, 1693 exams)
 │       ├── sheets/lectures/    # Lecture data: Drive API download xlsx (1741 lectures)
+│       ├── emis/token/         # POST/GET/DELETE — store EMIS JWT in httpOnly cookie
+│       ├── emis/proxy/         # POST — whitelist proxy to 8 EMIS endpoints
 │       ├── discover/           # Scrape agruni.edu.ge for current sheet URLs
 │       └── push/               # Push notification subscribe + send (daily cron)
 ├── components/
-│   ├── ui/                     # shadcn/ui: button, card, badge, skeleton, separator
+│   ├── ui/                     # shadcn/ui (base-nova): button, card, badge, sheet, select, etc.
 │   ├── auth/                   # session-provider.tsx
-│   ├── layout/                 # sidebar-nav, bottom-nav, header, install-prompt, sw-registrar
-│   ├── exams/                  # exam-card, exam-type-badge, countdown-timer, exam-day-group
-│   ├── schedule/               # week-grid, day-column, lecture-card
-│   ├── subjects/               # subject-filter
-│   └── onboarding/             # step-indicator, faculty-grid, year-picker, group-picker
+│   ├── onboarding/             # step-indicator, faculty-grid, year-picker, group-picker
+│   └── theme-provider.tsx      # next-themes wrapper
 ├── lib/
-│   ├── auth.ts                 # NextAuth v5 config (Google, @agruni.edu.ge restriction)
+│   ├── auth.ts                 # NextAuth v5 config (Google, @agruni.edu.ge, signIn page: /)
 │   ├── google-auth.ts          # OAuth2Client (uni account) + ServiceAccount (fallback)
-│   ├── subject-matcher.ts      # Fuzzy matching: exact → Roman↔Arabic → paren strip (theory preferred)
+│   ├── subject-matcher.ts      # Fuzzy matching: exact → Roman↔Arabic → paren strip
 │   ├── group-decoder.ts        # Group code mapping: con24-01 → Civil Engineering, 2024, group 1
-│   ├── exam-types.ts           # Georgian exam type parser: შუალედური→midterm, ფინალური→final
-│   ├── georgian-dates.ts       # Georgian month names, relative dates
-│   ├── calendar-export.ts      # .ics file generation (Asia/Tbilisi timezone)
+│   ├── exam-types.ts           # Georgian exam type parser
 │   ├── storage.ts              # localStorage wrapper with STORAGE_KEYS
-│   ├── notifications.ts        # Push subscription helpers (VAPID)
-│   └── sheets/
-│       ├── cache.ts            # In-memory TTL cache (1 hour)
-│       ├── persistent-cache.ts # File-based cache (data/*.json, /tmp on Vercel)
-│       ├── fetch-csv.ts        # Google Sheets CSV via gviz API
-│       ├── discover-tabs.ts    # Sheets API: discover all tabs + parse DD/MM dates
-│       ├── parse-exams.ts      # CSV/array → Exam objects (String coercion for Sheets API numbers)
-│       └── discover-urls.ts    # Scrape agruni.edu.ge for sheet URLs
+│   └── sheets/                 # cache, persistent-cache, discover-tabs, parse-exams, etc.
 ├── hooks/
-│   ├── use-auth-guard.ts       # Checks NextAuth session + group, redirects to /login or /onboarding
+│   ├── use-auth-guard.ts       # Checks session + group, redirects to / or /onboarding
 │   ├── use-user-group.ts       # localStorage group with loading state
-│   ├── use-exams.ts            # Fetch + fuzzy subject filter (4-tier: exact→Roman→paren→fallback)
-│   ├── use-schedule.ts         # Fetch lectures + subject filter
-│   ├── use-subjects.ts         # Subject selection state (localStorage)
-│   ├── use-theme.ts            # Dark/light/system theme
-│   ├── use-notifications.ts    # Push notification permission + subscribe
-│   └── use-install-prompt.ts   # PWA install prompt
-├── types/                      # exam.ts, lecture.ts, group.ts
-└── i18n/                       # ka.ts (Georgian primary), en.ts (English)
+│   ├── use-exams.ts            # Fetch + fuzzy subject filter
+│   ├── use-schedule.ts         # Fetch lectures + subject filter + weekSchedule
+│   ├── use-emis.ts             # Extension detection, token sync, EMIS API proxy calls
+│   └── use-subjects.ts         # Subject selection state (localStorage)
+├── types/                      # exam.ts, lecture.ts, group.ts, chrome.d.ts
+└── extension/                  # Chrome Extension for EMIS token capture
+    ├── manifest.json           # Manifest v3, externally_connectable
+    ├── content.js              # Captures Student-Token from EMIS localStorage
+    ├── background.js           # Messaging bridge for webapp ↔ extension
+    ├── popup.html/js           # Connection status indicator
+    └── icons/                  # 16, 48, 128 PNG icons
 ```
 
 ## Tech Stack
 
-Next.js 14 (App Router) · TypeScript · Tailwind CSS · shadcn/ui · lucide-react · papaparse · xlsx · date-fns · googleapis · google-auth-library · NextAuth.js v5 (beta) · web-push · Service Worker (PWA)
+Next.js 14 (App Router) · TypeScript · Tailwind CSS v3 · shadcn/ui (base-nova) · next-themes · lucide-react · recharts · papaparse · xlsx · date-fns · googleapis · google-auth-library · NextAuth.js v5 (beta) · Chrome Extension (Manifest v3)
 
 ## Key Technical Details
 
@@ -76,7 +71,7 @@ Next.js 14 (App Router) · TypeScript · Tailwind CSS · shadcn/ui · lucide-rea
 - NextAuth.js v5 with Google provider
 - Restricted to `@agruni.edu.ge` emails only (signIn callback)
 - Session stored in JWT (no database)
-- Auth guard on all pages: unauthenticated → /login, no group → /onboarding
+- Auth guard: unauthenticated → /, no group → /onboarding, else → /dashboard
 
 ### Data Pipeline
 - **Exams**: Sheets API v4 `batchGet` (4 API calls for 166 tabs). 1693 exams with real dates (DD/MM tab names → Date).
@@ -133,13 +128,16 @@ First year (year=1): no prefix, just `YY-NN` (e.g., `25-01`). Faculty saved to p
 | `/student/login` | POST | Username/password auth (needs reCAPTCHA) |
 | `/student/checkUsername` | POST | Check if username exists |
 
-### Design System
-- Primary color: Indigo/Blue-purple (`#6366f1`, oklch hue 264)
-- Logo: Blue-to-purple gradient geometric "U" icon
-- Dark mode: Deep blue-purple tones
-- Fonts: Noto Sans (supports Georgian)
-- Mobile: bottom nav (3 tabs: Exams, Schedule, Settings)
-- Desktop: sidebar nav (240px, backdrop-blur)
+### Design System (v0.dev Emerald & Gold)
+- Primary: Emerald green (oklch hue 160)
+- Accent: Gold (oklch hue 85)
+- Logo: SVG hexagon with "U" letterform + gold accent dot
+- Dark mode: Deep green tones
+- Fonts: Inter (Latin), system fallback for Georgian
+- Mobile: bottom nav (3 tabs: Dashboard, Schedule, Exams) + "More" drawer
+- Desktop: sidebar nav (240px, fixed)
+- Glassmorphism cards on login/onboarding/setup pages
+- Animated gradient backgrounds on fullscreen pages
 
 ## Commands
 
@@ -190,28 +188,29 @@ Skills: `/opsx:explore`, `/opsx:propose`, `/opsx:apply`, `/opsx:archive`
 
 ## Key Rules
 
-- **Georgian first**: All UI strings through i18n (ka.ts primary)
+- **Georgian UI**: Hardcoded Georgian text (no i18n — removed)
 - **Named exports only**
 - **Path alias `@/*`** → `src/*`
 - **Mobile-first**: 375px minimum, scale up
 - **Server-side data**: Google Sheets/Drive fetching in API routes only
 - **Cache**: 1-hour TTL, 3 layers (memory → file → API)
-- **Auth required**: All pages require Google sign-in
+- **Auth required**: All /dashboard/* pages require Google sign-in
 - **Commit per phase**: Commit after user confirms each phase
+- **EMIS proxy whitelist**: Only 8 approved endpoints in /api/emis/proxy
 
 ## v2 Roadmap
 
-### Phase 1: v0.dev Design Generation
-User generates designs in v0.dev for: Login, Dashboard, Schedule, Exams, Grades, Conspects, Profile
+### Phase 1: v0.dev Design — DONE
+Fresh redesign: Emerald/Gold theme, new route structure, all pages
 
-### Phase 2: Dashboard + Navigation Redesign
-New home dashboard, redesigned sidebar (Dashboard, Schedule, Exams, Grades, Conspects, Profile), mobile "More" drawer
+### Phase 2: Dashboard + Navigation — DONE
+Sidebar + bottom nav, dashboard with real data, onboarding restyled
 
-### Phase 3: EMIS Integration (Chrome Extension)
-Tiny extension reads EMIS token → sends to UniHub API → enables grades/GPA/profile auto-fill
+### Phase 3: EMIS Integration — DONE
+Chrome Extension (token capture), API proxy (8 endpoints), useEmis hook, grades page wired
 
-### Phase 4: Conspect Sharing
+### Phase 4: Conspect Sharing — TODO
 Database (Vercel Postgres or Supabase), file upload (Vercel Blob), CRUD + voting + search
 
-### Phase 5: Polish + Production
+### Phase 5: Polish + Production — TODO
 Final UI, performance, full deployment
