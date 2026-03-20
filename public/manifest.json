@@ -2,14 +2,14 @@
   "name": "UniHub - სტუდენტის პორტალი",
   "short_name": "UniHub",
   "description": "აგრარული უნივერსიტეტის სტუდენტის პორტალი - ცხრილი, გამოცდები და სხვა",
-  "start_url": "/exams",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#6366f1",
+  "background_color": "#1a2e1a",
+  "theme_color": "#16a34a",
   "orientation": "portrait",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/favicon.png", "sizes": "any", "type": "image/png" }
+    { "src": "/apple-icon.png", "sizes": "any", "type": "image/png" }
   ]
 }
