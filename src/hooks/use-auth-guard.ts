@@ -13,7 +13,7 @@ export function useAuthGuard() {
   useEffect(() => {
     if (status === 'loading' || groupLoading) return;
     if (status === 'unauthenticated') {
-      router.replace('/login');
+      router.replace('/');
       return;
     }
     if (!group) {

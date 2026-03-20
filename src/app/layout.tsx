@@ -1,35 +1,38 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { LanguageProvider } from "@/i18n";
-import { BottomNav } from "@/components/layout/bottom-nav";
-import { SidebarNav } from "@/components/layout/sidebar-nav";
-import { MainContent } from "@/components/layout/main-content";
-import { ServiceWorkerRegistrar } from "@/components/layout/sw-registrar";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AuthSessionProvider } from "@/components/auth/session-provider";
 
-const notoSans = Noto_Sans({
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-sans",
-  display: "swap",
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: "UniHub",
-  description: "University schedule & exam tracker for Agricultural University of Georgia",
+  title: "UniHub - სტუდენტის პორტალი",
+  description: "საქართველოს აგრარული უნივერსიტეტის სტუდენტის პორტალი",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-light-32x32.png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-dark-32x32.png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "UniHub",
   },
-  other: {
-    "mobile-web-app-capable": "yes",
-  },
 };
 
 export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1419" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -42,26 +45,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ka" suppressHydrationWarning>
-      <head>
-        {/* Prevent theme flash: must run before any CSS paints */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=JSON.parse(localStorage.getItem('unischedule_theme')||'"system"');if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();` }} />
-        <meta name="theme-color" content="#6366f1" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <link rel="icon" href="/favicon.png" type="image/png" />
-      </head>
-      <body className={`${notoSans.variable} font-sans antialiased`} suppressHydrationWarning>
-        <AuthSessionProvider>
-        <LanguageProvider>
-          <ServiceWorkerRegistrar />
-          <div className="flex h-screen">
-            <SidebarNav />
-            <MainContent>{children}</MainContent>
-          </div>
-          <BottomNav />
-        </LanguageProvider>
-        </AuthSessionProvider>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthSessionProvider>{children}</AuthSessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
