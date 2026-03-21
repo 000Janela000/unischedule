@@ -21,14 +21,22 @@ const DAY_NAMES_EN: Record<number, string> = {
   5: 'Friday',
 };
 
+/**
+ * When EMIS subjects are available, fetches ALL lectures and filters by subject name.
+ * This handles cross-listed courses (e.g. con21 student taking elec24 subjects).
+ * Falls back to group-based filtering when EMIS is not connected.
+ */
 export function useSchedule(selectedSubjects?: string[] | null) {
   const [rawLectures, setRawLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { group, loading: groupLoading } = useUserGroup();
 
+  // When EMIS subjects exist, skip group filter
+  const hasEmisSubjects = selectedSubjects && selectedSubjects.length > 0;
+
   const fetchLectures = useCallback(async () => {
-    if (!group?.groupCode) {
+    if (!group?.groupCode && !hasEmisSubjects) {
       setRawLectures([]);
       setLoading(false);
       return;
@@ -38,7 +46,12 @@ export function useSchedule(selectedSubjects?: string[] | null) {
     setError(null);
 
     try {
-      const params = new URLSearchParams({ group: group.groupCode });
+      const params = new URLSearchParams();
+      // Only add group filter when EMIS subjects are NOT available
+      if (!hasEmisSubjects && group?.groupCode) {
+        params.set('group', group.groupCode);
+      }
+
       const res = await fetch(`/api/sheets/lectures?${params.toString()}`);
 
       if (!res.ok) {
@@ -54,14 +67,14 @@ export function useSchedule(selectedSubjects?: string[] | null) {
     } finally {
       setLoading(false);
     }
-  }, [group?.groupCode]);
+  }, [group?.groupCode, hasEmisSubjects]);
 
   useEffect(() => {
     if (groupLoading) return;
     fetchLectures();
   }, [fetchLectures, groupLoading]);
 
-  // Filter lectures by selected subjects using fuzzy matching
+  // Filter lectures by EMIS subject names (fuzzy matching)
   const lectures = useMemo(() => {
     if (!selectedSubjects || selectedSubjects.length === 0) return rawLectures;
     return rawLectures.filter((l) => subjectInList(l.subject, selectedSubjects));

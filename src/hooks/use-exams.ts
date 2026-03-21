@@ -12,6 +12,11 @@ interface CachedExams {
 
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours client-side
 
+/**
+ * When EMIS subjects are available, fetches ALL exams and filters by subject name.
+ * This handles cross-listed courses (e.g. con21 student taking elec24 subjects).
+ * Falls back to group-based filtering when EMIS is not connected.
+ */
 export function useExams(
   group: string | null,
   university: 'agruni' | 'freeuni' = 'agruni',
@@ -21,8 +26,11 @@ export function useExams(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // When EMIS subjects exist, skip group filter — fetch all, filter by subject client-side
+  const hasEmisSubjects = selectedSubjects && selectedSubjects.length > 0;
+
   const fetchExams = useCallback(async () => {
-    if (!group) {
+    if (!group && !hasEmisSubjects) {
       setRawExams([]);
       setLoading(false);
       return;
@@ -31,8 +39,10 @@ export function useExams(
     setLoading(true);
     setError(null);
 
-    // Cache key includes group so switching groups doesn't serve stale data
-    const cacheKey = `${STORAGE_KEYS.EXAM_CACHE}_${group}`;
+    const cacheKey = hasEmisSubjects
+      ? `${STORAGE_KEYS.EXAM_CACHE}_emis_all`
+      : `${STORAGE_KEYS.EXAM_CACHE}_${group}`;
+
     const cached = getItem<CachedExams | null>(cacheKey, null);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       setRawExams(cached.data);
@@ -41,7 +51,12 @@ export function useExams(
     }
 
     try {
-      const params = new URLSearchParams({ group, university });
+      const params = new URLSearchParams({ university });
+      // Only add group filter when EMIS subjects are NOT available
+      if (!hasEmisSubjects && group) {
+        params.set('group', group);
+      }
+
       const res = await fetch(`/api/sheets/exams?${params.toString()}`);
 
       if (!res.ok) {
@@ -58,7 +73,6 @@ export function useExams(
       });
 
       setRawExams(sorted);
-      const cacheKey = `${STORAGE_KEYS.EXAM_CACHE}_${group}`;
       setItem(cacheKey, { data: sorted, timestamp: Date.now() });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch exams';
@@ -66,24 +80,19 @@ export function useExams(
     } finally {
       setLoading(false);
     }
-  }, [group, university]);
+  }, [group, university, hasEmisSubjects]);
 
   useEffect(() => {
     fetchExams();
   }, [fetchExams]);
 
-  // Filter exams by selected subjects using fuzzy matching
-  // Handles: exact, Roman↔Arabic, parenthetical strip (theory preferred)
+  // Filter by EMIS subject names (fuzzy matching)
   const exams = useMemo(() => {
     if (!selectedSubjects || selectedSubjects.length === 0) return rawExams;
 
     const filtered = rawExams.filter((exam) =>
       subjectInList(exam.subjectClean, selectedSubjects)
     );
-
-    // If fuzzy matching still produces 0 but raw has data, show all
-    // (safety net for completely different semester subjects)
-    if (filtered.length === 0 && rawExams.length > 0) return rawExams;
 
     return filtered;
   }, [rawExams, selectedSubjects]);
