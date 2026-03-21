@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from "react";
 
-// Chrome Web Store extension ID (public, not a secret)
-const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "nfgfmkhppofmeldahpogllefejbkeoij";
+// Chrome Web Store extension ID — set NEXT_PUBLIC_EXTENSION_ID in Vercel env vars
+const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "";
 
 interface EmisStatus {
   connected: boolean;
