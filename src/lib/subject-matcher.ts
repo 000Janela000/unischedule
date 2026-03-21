@@ -18,13 +18,6 @@ const ROMAN_TO_ARABIC: [string, string][] = [
   ['V', '5'], ['I', '1'],
 ];
 
-// Build alias lookup from subject-map.json
-const ALIASES = new Map<string, string>();
-for (const { from, to } of subjectMap.aliases) {
-  ALIASES.set(normalize(from), normalize(to));
-  ALIASES.set(normalize(to), normalize(from));
-}
-
 // Build key lookup: normalized name → subject key
 const SUBJECT_KEYS = new Map<string, string>();
 for (const entry of subjectMap.subjects) {
@@ -88,12 +81,6 @@ function getSubjectKey(name: string): string | null {
   const examStripped = stripParenthetical(stripExamSuffix(name));
   if (SUBJECT_KEYS.has(examStripped)) return SUBJECT_KEYS.get(examStripped)!;
 
-  // Try aliases
-  if (ALIASES.has(norm)) {
-    const aliased = ALIASES.get(norm)!;
-    if (SUBJECT_KEYS.has(aliased)) return SUBJECT_KEYS.get(aliased)!;
-  }
-
   return null;
 }
 
@@ -124,10 +111,6 @@ export function subjectsMatch(a: string, b: string): boolean {
 
   // Tier 4: parenthetical strip
   if (stripParenthetical(a) === stripParenthetical(b)) return true;
-
-  // Tier 5: alias check
-  if (ALIASES.has(normA) && ALIASES.get(normA) === normB) return true;
-  if (ALIASES.has(normB) && ALIASES.get(normB) === normA) return true;
 
   return false;
 }
