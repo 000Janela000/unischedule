@@ -2,10 +2,8 @@
 
 import { useState, useCallback } from "react";
 
-// Extension ID will be known after publishing to Chrome Web Store.
-// During development, use the unpacked extension ID from chrome://extensions.
-// Set this in .env.local as NEXT_PUBLIC_EXTENSION_ID
-const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "";
+// Chrome Web Store extension ID (public, not a secret)
+const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "nfgfmkhppofmeldahpogllefejbkeoij";
 
 interface EmisStatus {
   connected: boolean;
