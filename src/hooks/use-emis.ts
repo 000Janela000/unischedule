@@ -144,7 +144,7 @@ export function useEmis() {
   /**
    * Call an EMIS API endpoint directly from the browser.
    * EMIS has Access-Control-Allow-Origin: * so CORS is fine.
-   * Gets token from extension, calls EMIS directly — no server proxy needed.
+   * Auto-injects studentId from JWT when not provided in body.
    */
   const callEmis = useCallback(async (endpoint: string, body?: object) => {
     const token = await getEmisToken();
@@ -154,9 +154,20 @@ export function useEmis() {
       throw new Error("EMIS not connected");
     }
 
+    // Extract studentId from JWT for endpoints that need it
+    let resolvedBody = body !== undefined ? { ...body } : undefined;
+    if (resolvedBody && !("studentId" in resolvedBody && (resolvedBody as Record<string, unknown>).studentId)) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.id) {
+          (resolvedBody as Record<string, unknown>).studentId = payload.id;
+        }
+      } catch {}
+    }
+
     // Direct browser call to EMIS
     const emisUrl = `${EMIS_BASE}${endpoint}`;
-    const method = body !== undefined ? "POST" : "GET";
+    const method = resolvedBody !== undefined ? "POST" : "GET";
     const fetchOptions: RequestInit = {
       method,
       headers: {
@@ -166,7 +177,7 @@ export function useEmis() {
     };
 
     if (method === "POST") {
-      fetchOptions.body = JSON.stringify(body || {});
+      fetchOptions.body = JSON.stringify(resolvedBody || {});
     }
 
     const res = await fetch(emisUrl, fetchOptions);
