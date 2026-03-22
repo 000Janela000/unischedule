@@ -54,8 +54,8 @@ export default function ExtensionSetupPage() {
       title: "გაფართოების დაყენება",
       description: "დააინსტალირეთ UniHub Chrome გაფართოება",
       action: (
-        <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
-          Chrome Web Store
+        <a href="https://chromewebstore.google.com/detail/unihub-emis-connector/fhogblehhkpclmeoflmjpjcfldpmnlpa" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
+          გაფართოების დაყენება
           <ExternalLink className="h-3 w-3" />
         </a>
       ),
