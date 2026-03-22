@@ -1,6 +1,5 @@
 // UniHub EMIS Connector — Sync Script
 // Runs on UniHub pages to push captured EMIS token to the webapp API
-// This avoids needing EXTENSION_ID for cross-extension messaging
 
 function syncTokenToApi() {
   chrome.storage.local.get(["emisToken", "emisConnected"], async (data) => {
@@ -12,7 +11,6 @@ function syncTokenToApi() {
     } catch {}
 
     try {
-      // Same-origin request — has NextAuth session cookies
       const res = await fetch("/api/emis/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -20,7 +18,7 @@ function syncTokenToApi() {
       });
 
       if (res.ok) {
-        console.log("[UniHub Extension] Token synced");
+        console.log("[UniHub Extension] Token synced to API");
         chrome.storage.local.set({ tokenSyncedToApi: true });
       }
     } catch (err) {
@@ -36,5 +34,17 @@ syncTokenToApi();
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.emisToken || changes.emisConnected) {
     syncTokenToApi();
+  }
+});
+
+// Listen for navigation intent from setup page
+// Setup page sends postMessage before redirecting to EMIS
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (event.data?.type === "UNIHUB_NAVIGATE_EMIS") {
+    chrome.storage.local.set({
+      returnToUniHub: true,
+      returnUrl: event.data.returnUrl || window.location.origin + "/setup",
+    });
   }
 });

@@ -72,12 +72,20 @@ export default function ExtensionSetupPage() {
     {
       icon: Globe,
       title: "EMIS-ზე შესვლა",
-      description: "გახსენით EMIS — გაფართოება ავტომატურად წამოიღებს მონაცემებს",
+      description: "შედით EMIS-ში — გაფართოება ავტომატურად წამოიღებს მონაცემებს და დაგაბრუნებთ",
       action: (
-        <a href="https://emis.campus.edu.ge" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors">
-          EMIS გახსნა
+        <button
+          onClick={() => {
+            // Tell extension to redirect back after token capture
+            window.postMessage({ type: "UNIHUB_NAVIGATE_EMIS", returnUrl: window.location.href }, "*");
+            // Small delay to let sync.js set the flag, then navigate
+            setTimeout(() => { window.location.href = "https://emis.campus.edu.ge"; }, 200);
+          }}
+          className="mt-2 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors"
+        >
+          EMIS-ზე გადასვლა
           <ExternalLink className="h-3 w-3" />
-        </a>
+        </button>
       ),
     },
     {

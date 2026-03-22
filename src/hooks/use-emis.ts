@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from "react";
 
-// Chrome Web Store extension ID — set NEXT_PUBLIC_EXTENSION_ID in Vercel env vars
-const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "";
+// Chrome Web Store extension ID
+const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "fhogblehhkpclmeoflmjpjcfldpmnlpa";
 const EMIS_BASE = "https://emis.campus.edu.ge";
 const TOKEN_STORAGE_KEY = "emis_token";
 

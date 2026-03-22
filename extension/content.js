@@ -22,7 +22,7 @@ function getToken() {
   }
 }
 
-function captureAndClose(token) {
+function captureAndSync(token) {
   if (alreadyCaptured) return;
   alreadyCaptured = true;
 
@@ -33,12 +33,11 @@ function captureAndClose(token) {
   }, () => {
     console.log("[UniHub] EMIS data synced to extension storage");
 
-    // If user came from UniHub (via extension popup or setup page),
-    // just close this EMIS tab — sync.js on the UniHub tab will pick up the token
-    chrome.storage.local.get(["returnToUniHub"], (data) => {
-      if (data.returnToUniHub) {
-        chrome.storage.local.remove("returnToUniHub");
-        window.close();
+    // If user came from UniHub, redirect back
+    chrome.storage.local.get(["returnToUniHub", "returnUrl"], (data) => {
+      if (data.returnToUniHub && data.returnUrl) {
+        chrome.storage.local.remove(["returnToUniHub", "returnUrl"]);
+        window.location.href = data.returnUrl;
       }
     });
   });
@@ -50,7 +49,7 @@ function checkAndCapture() {
 
   const token = getToken();
   if (token && isValidJwt(token)) {
-    captureAndClose(token);
+    captureAndSync(token);
   } else if (attempts < MAX_ATTEMPTS) {
     setTimeout(checkAndCapture, CHECK_INTERVAL);
   }
@@ -71,7 +70,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     const token = getToken();
     if (token && isValidJwt(token)) {
-      captureAndClose(token);
+      captureAndSync(token);
     }
   }
 });
