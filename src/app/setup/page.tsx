@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Puzzle, Globe, CheckCircle2, ExternalLink, Loader2, Check } from "lucide-react";
+import { useEmis } from "@/hooks/use-emis";
 
 export default function ExtensionSetupPage() {
   const [mounted, setMounted] = useState(false);
@@ -12,11 +13,19 @@ export default function ExtensionSetupPage() {
   const router = useRouter();
   const [connected, setConnected] = useState(false);
   const [checking, setChecking] = useState(false);
+  const { syncToken, checkExtension } = useEmis();
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Check server-side connection (extension POSTs token directly to API)
+  // Check connection: try extension first, then server cookie
   const checkConnection = useCallback(async () => {
+    // Try syncing token from extension → server
+    const synced = await syncToken();
+    if (synced) {
+      setConnected(true);
+      return true;
+    }
+    // Fallback: check if server already has the cookie
     try {
       const r = await fetch("/api/emis/token");
       const d = await r.json();
@@ -26,12 +35,12 @@ export default function ExtensionSetupPage() {
       }
     } catch {}
     return false;
-  }, []);
+  }, [syncToken]);
 
   // Check on mount
   useEffect(() => { checkConnection(); }, [checkConnection]);
 
-  // Poll every 3s while not connected (extension will POST token from EMIS tab)
+  // Poll every 3s while not connected
   useEffect(() => {
     if (connected) return;
     const interval = setInterval(async () => {
