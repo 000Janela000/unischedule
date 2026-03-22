@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from "react";
 
-// Chrome Web Store extension ID
-const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "fhogblehhkpclmeoflmjpjcfldpmnlpa";
+// Chrome Web Store extension ID (public, same as in store URL)
+const EXTENSION_ID = "fhogblehhkpclmeoflmjpjcfldpmnlpa";
 const EMIS_BASE = "https://emis.campus.edu.ge";
 const TOKEN_STORAGE_KEY = "emis_token";
 
