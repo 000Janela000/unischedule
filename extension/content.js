@@ -65,6 +65,13 @@ window.addEventListener("storage", (e) => {
   }
 });
 
+// Listen for storage changes (user logs in while page is open)
+window.addEventListener("storage", (e) => {
+  if (e.key === "Student-Token" && e.newValue && isValidJwt(e.newValue)) {
+    captureAndSync(e.newValue);
+  }
+});
+
 // Re-check when user returns to this EMIS tab
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {

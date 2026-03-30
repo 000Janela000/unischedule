@@ -45,6 +45,9 @@ window.addEventListener("message", (event) => {
     chrome.storage.local.set({
       returnToUniHub: true,
       returnUrl: event.data.returnUrl || window.location.origin + "/setup",
+    }, () => {
+      // Acknowledge to the page that flag was set
+      window.postMessage({ type: "UNIHUB_EMIS_READY" }, "*");
     });
   }
 });

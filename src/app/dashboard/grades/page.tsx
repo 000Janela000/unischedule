@@ -21,6 +21,8 @@ interface Course {
   professor: string;
   groupName: string;
   year: string;
+  confirm: string; // "yes" or "no"
+  estListStatus: string | null; // "active", "archive", or null for imported records
 }
 
 interface JwtStats {
@@ -40,26 +42,13 @@ const GRADE_CONFIG: Record<string, { label: string; color: string; points: numbe
   F: { label: "F", color: "text-destructive", points: 0 },
 };
 
-const SEMESTER_LABELS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+// Georgian semester labels: "მე-1 სემესტრი", "მე-2 სემესტრი", etc.
+const semesterLabel = (n: number): string => `მე-${n} სემესტრი`;
 
 function getJwtStats(): JwtStats | null {
   try {
     const token = localStorage.getItem("emis_token");
-    if (!token) {
-      // Try cookie fallback
-      const cookies = document.cookie.split(";").map((c) => c.trim());
-      const emisCookie = cookies.find((c) => c.startsWith("emis_token="));
-      if (!emisCookie) return null;
-      const cookieToken = emisCookie.split("=")[1];
-      const payload = JSON.parse(atob(cookieToken.split(".")[1]));
-      return {
-        gpa: payload.view?.gpa || 0,
-        earnedCredits: payload.view?.credit || 0,
-        requiredCredits: payload.view?.programCredit || 240,
-        averageScore: payload.view?.averageScore || 0,
-        semester: payload.view?.semester || 1,
-      };
-    }
+    if (!token) return null;
     const payload = JSON.parse(atob(token.split(".")[1]));
     return {
       gpa: payload.view?.gpa || 0,
@@ -71,6 +60,25 @@ function getJwtStats(): JwtStats | null {
   } catch {
     return null;
   }
+}
+
+// Helper functions for grade display logic
+function isPending(c: Course): boolean {
+  return c.grade === "" && c.estListStatus === "active";
+}
+
+function isFailed(c: Course): boolean {
+  return c.grade === "F" && (c.confirm === "yes" || c.estListStatus === "archive");
+}
+
+function displayGrade(c: Course): string {
+  if (isPending(c)) return "—";
+  return c.grade || "—";
+}
+
+function gradeColor(c: Course): string {
+  if (isPending(c)) return "text-muted-foreground";
+  return GRADE_CONFIG[c.grade]?.color || "text-muted-foreground";
 }
 
 function gradeToGpaPoints(grade: string): number {
@@ -136,13 +144,15 @@ export default function GradesPage() {
               nameEn: r.bookAltName || "",
               code: r.bookCode || "",
               credits: r.credit || 0,
-              grade: r.result || "F",
+              grade: r.result || "",
               points: typeof r.score === "number" ? r.score : parseFloat(r.score) || 0,
               status: (r.score || 0) >= 51 ? "passed" : "failed",
               semester: r.semester || 1,
               professor: r.profName || "",
               groupName: r.groupName || "",
               year: r.year || "",
+              confirm: r.confirm || "no",
+              estListStatus: r.est_list?.status || null,
             });
           }
         }
@@ -171,7 +181,7 @@ export default function GradesPage() {
 
   const semesters = useMemo(() => {
     const set = new Set(courses.map((c) => c.semester));
-    return Array.from(set).sort((a, b) => b - a); // newest first
+    return Array.from(set).sort((a, b) => a - b); // oldest first (I → X)
   }, [courses]);
 
   const coursesBySemester = useMemo(() => {
@@ -281,7 +291,7 @@ export default function GradesPage() {
           <div>
             <h1 className="text-xl font-semibold text-foreground lg:text-2xl">შეფასებები</h1>
             <p className="text-sm text-muted-foreground">
-              {currentSemester > 0 ? `${SEMESTER_LABELS[currentSemester - 1]} სემესტრი` : "აკადემიური მოსწრება"}
+              {currentSemester > 0 ? `${semesterLabel(currentSemester)} მიმდინარე` : "აკადემიური მოსწრება"}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={syncing}>
@@ -291,73 +301,48 @@ export default function GradesPage() {
       </header>
 
       <main className="px-4 py-5 lg:px-8">
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          {/* GPA */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-1">GPA</p>
-            <p className="text-2xl font-bold text-foreground lg:text-3xl">{gpa.toFixed(2)}</p>
+        {/* Stats cards — redesigned */}
+        <div className="grid gap-4 mb-6 lg:grid-cols-2">
+          {/* GPA card — larger */}
+          <div className="rounded-xl border border-border bg-card p-5 lg:col-span-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase mb-2">GPA</p>
+            <p className="text-4xl font-bold text-foreground">{gpa.toFixed(2)}</p>
             {averageScore > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">{averageScore} ქულა</p>
+              <p className="text-xs text-muted-foreground mt-2">საშ. ქულა: {averageScore} (100-ქ. სკალა)</p>
             )}
           </div>
-          {/* Credits */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-1">კრედიტი</p>
-            <p className="text-2xl font-bold text-foreground lg:text-3xl">{earnedCredits}</p>
-            <p className="text-xs text-muted-foreground mt-1">/ {requiredCredits}</p>
-          </div>
-          {/* Progress */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-1">პროგრესი</p>
-            <p className="text-2xl font-bold text-foreground lg:text-3xl">{Math.round(creditPercent)}%</p>
-            <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${creditPercent}%` }}
-              />
+
+          {/* Credits + semester card */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase mb-1">კრედიტი</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-foreground">{earnedCredits}</p>
+                <p className="text-sm text-muted-foreground">/{requiredCredits}</p>
+              </div>
+              {earnedCredits >= requiredCredits ? (
+                <p className="text-xs text-primary font-medium mt-1">✓ პროგრამა დასრულებულია</p>
+              ) : (
+                <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${creditPercent}%` }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="border-t border-border pt-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase">{currentSemester > 0 ? semesterLabel(currentSemester) : "სემესტრი"}</p>
             </div>
           </div>
         </div>
 
-        {/* Grade distribution bar */}
-        {courses.length > 0 && (
-          <div className="mb-5 flex items-center gap-1 rounded-lg overflow-hidden h-2">
-            {["A", "B", "C", "D", "E", "F"].map((g) => {
-              const count = gradeDistribution[g] || 0;
-              if (count === 0) return null;
-              const pct = (count / courses.length) * 100;
-              const colors: Record<string, string> = {
-                A: "bg-emerald-500", B: "bg-primary", C: "bg-blue-500",
-                D: "bg-amber-500", E: "bg-orange-500", F: "bg-destructive",
-              };
-              return <div key={g} className={cn("h-full", colors[g])} style={{ width: `${pct}%` }} />;
-            })}
-          </div>
-        )}
-
-        {/* Grade legend */}
-        {courses.length > 0 && (
-          <div className="mb-5 flex flex-wrap gap-3 text-xs text-muted-foreground">
-            {["A", "B", "C", "D", "E", "F"].map((g) => {
-              const count = gradeDistribution[g] || 0;
-              if (count === 0) return null;
-              return (
-                <span key={g} className="flex items-center gap-1.5">
-                  <span className={cn("font-semibold", GRADE_CONFIG[g]?.color)}>{g}</span>
-                  <span>{count}</span>
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Semester tabs */}
-        <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {/* Semester tabs — Georgian labels */}
+        <div className="mb-5 flex gap-1.5 overflow-x-auto pb-2 scrollbar-none">
           <button
             onClick={() => { setSelectedSemester("all"); setExpandedSemesters(new Set(semesters)); }}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
               selectedSemester === "all"
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-secondary"
@@ -370,7 +355,7 @@ export default function GradesPage() {
               key={sem}
               onClick={() => { setSelectedSemester(sem); setExpandedSemesters(new Set([sem])); }}
               className={cn(
-                "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
                 selectedSemester === sem
                   ? "bg-primary text-primary-foreground"
                   : sem === currentSemester
@@ -378,7 +363,7 @@ export default function GradesPage() {
                     : "text-muted-foreground hover:bg-secondary"
               )}
             >
-              {SEMESTER_LABELS[sem - 1] || sem}
+              მე-{sem}
               {sem === currentSemester && selectedSemester !== sem && (
                 <span className="ml-1 inline-block size-1.5 rounded-full bg-primary" />
               )}
@@ -410,7 +395,7 @@ export default function GradesPage() {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-foreground">
-                      {SEMESTER_LABELS[sem - 1] || sem} სემესტრი
+                      {semesterLabel(sem)}
                     </span>
                     {isCurrent && (
                       <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
@@ -436,34 +421,36 @@ export default function GradesPage() {
                         key={i}
                         className={cn(
                           "flex items-center gap-3 px-4 py-3",
-                          course.status === "failed" && "bg-destructive/5"
+                          isFailed(course) && "bg-destructive/5"
                         )}
                       >
-                        {/* Grade */}
-                        <span className={cn(
-                          "w-8 text-center text-lg font-bold",
-                          GRADE_CONFIG[course.grade]?.color || "text-muted-foreground"
+                        {/* Grade pill */}
+                        <div className={cn(
+                          "shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
+                          isPending(course) && "bg-muted text-muted-foreground",
+                          isFailed(course) && !isPending(course) && "bg-destructive/20 text-destructive",
+                          !isPending(course) && !isFailed(course) && GRADE_CONFIG[course.grade] && `${GRADE_CONFIG[course.grade].color.replace('text-', 'bg-')} text-foreground`
                         )}>
-                          {course.grade}
-                        </span>
+                          {displayGrade(course)}
+                        </div>
 
                         {/* Subject info */}
                         <div className="flex-1 min-w-0">
                           <p className="truncate text-sm font-medium text-foreground">
                             {course.name}
                           </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-muted-foreground">{course.credits} ECTS</span>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                            <span>{course.credits} ECTS</span>
                             {course.professor && (
-                              <span className="text-xs text-muted-foreground truncate">· {course.professor}</span>
+                              <span className="truncate">· {course.professor}</span>
                             )}
                           </div>
                         </div>
 
                         {/* Score */}
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-semibold text-foreground">{course.points}</p>
-                          <p className="text-[10px] text-muted-foreground">ქულა</p>
+                        <div className="text-right shrink-0 text-xs">
+                          <p className="font-semibold text-foreground">{course.points}</p>
+                          <p className="text-muted-foreground">ქულა</p>
                         </div>
                       </div>
                     ))}

@@ -7,6 +7,52 @@ const EXTENSION_ID = "fhogblehhkpclmeoflmjpjcfldpmnlpa";
 const EMIS_BASE = "https://emis.campus.edu.ge";
 const TOKEN_STORAGE_KEY = "emis_token";
 
+/** Check if JWT token is still valid (not expired) */
+export function isTokenValid(): boolean {
+  try {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.exp) return true; // No expiry = valid
+    // Token valid if expires more than 5 minutes from now
+    return payload.exp * 1000 > Date.now() + 5 * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
+
+/** Navigate to EMIS for authentication, with auto-return to UniHub after token capture */
+export async function navigateToEmis(returnUrl: string): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  return new Promise((resolve) => {
+    // Listen for sync.js acknowledgment
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "UNIHUB_EMIS_READY") {
+        window.removeEventListener("message", handleMessage);
+        clearTimeout(timeout);
+        // Flag is set, safe to navigate
+        setTimeout(() => {
+          window.location.href = EMIS_BASE;
+          resolve();
+        }, 100);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    // Timeout: if no acknowledgment within 400ms, navigate anyway
+    const timeout = setTimeout(() => {
+      window.removeEventListener("message", handleMessage);
+      window.location.href = EMIS_BASE;
+      resolve();
+    }, 400);
+
+    // Send navigation intent to sync.js
+    window.postMessage({ type: "UNIHUB_NAVIGATE_EMIS", returnUrl }, "*");
+  });
+}
+
 interface EmisStatus {
   connected: boolean;
   lastSync: string | null;
@@ -49,6 +95,11 @@ async function getEmisToken(): Promise<string | null> {
       resolve(null);
     }
   });
+}
+
+/** Check token validity without modifying state — returns true if valid */
+export function checkTokenValidity(): boolean {
+  return isTokenValid();
 }
 
 export function useEmis() {

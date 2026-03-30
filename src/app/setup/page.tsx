@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Puzzle, Globe, CheckCircle2, ExternalLink, Loader2, Check } from "lucide-react";
 import { useEmis } from "@/hooks/use-emis";
+import { navigateToEmis } from "@/hooks/use-emis";
 
 export default function ExtensionSetupPage() {
   const [mounted, setMounted] = useState(false);
@@ -13,7 +14,7 @@ export default function ExtensionSetupPage() {
   const router = useRouter();
   const [connected, setConnected] = useState(false);
   const [checking, setChecking] = useState(false);
-  const { syncToken, checkExtension } = useEmis();
+  const { syncToken } = useEmis();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -75,12 +76,7 @@ export default function ExtensionSetupPage() {
       description: "შედით EMIS-ში — გაფართოება ავტომატურად წამოიღებს მონაცემებს და დაგაბრუნებთ",
       action: (
         <button
-          onClick={() => {
-            // Tell extension to redirect back after token capture
-            window.postMessage({ type: "UNIHUB_NAVIGATE_EMIS", returnUrl: window.location.href }, "*");
-            // Small delay to let sync.js set the flag, then navigate
-            setTimeout(() => { window.location.href = "https://emis.campus.edu.ge"; }, 200);
-          }}
+          onClick={() => navigateToEmis(window.location.href)}
           className="mt-2 inline-flex items-center gap-2 rounded-md border border-border/50 bg-secondary/50 px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors"
         >
           EMIS-ზე გადასვლა

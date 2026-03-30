@@ -84,6 +84,7 @@ export default function SettingsPage() {
   const currentTheme = mounted ? theme : "system";
   const displayGroup = emisGroup || group?.groupCode;
   const decoded = displayGroup ? decodeGroupCode(displayGroup) : null;
+  const semesterLabel = emisSemester ? `მე-${emisSemester} სემესტრი` : (decoded ? `${decoded.entryYear} წელი` : "—");
 
   return (
     <div className="min-h-screen pb-24 lg:pb-8">
@@ -94,110 +95,91 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl space-y-6 p-4 lg:p-8">
-        {/* Profile */}
-        <Card className="border-border bg-card overflow-hidden">
-          <div className="h-20 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20" />
-          <CardContent className="relative pt-0 pb-6">
-            <div className="-mt-12 flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-6">
-              <Avatar className="size-24 border-4 border-card shadow-lg">
-                <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || ""} />
-                <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
-                  {session?.user?.name?.split(" ").map((n) => n[0]).join("") || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 text-center sm:text-left">
-                <h2 className="text-xl font-semibold text-foreground">{session?.user?.name || "სტუდენტი"}</h2>
-                <div className="mt-1 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                  <span className="text-sm text-muted-foreground">{session?.user?.email}</span>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">@agruni.edu.ge</Badge>
-                </div>
-              </div>
+      <div className="mx-auto max-w-lg space-y-4 p-4 lg:p-8">
+        {/* Profile — compact single row */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex gap-4">
+            <Avatar className="size-16 shrink-0 border-2 border-border">
+              <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || ""} />
+              <AvatarFallback className="bg-primary text-lg font-semibold text-primary-foreground">
+                {session?.user?.name?.split(" ").map((n) => n[0]).join("") || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-semibold text-foreground">{session?.user?.name || "სტუდენტი"}</h2>
+              <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
+              {emisProgram && (
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{emisProgram}</p>
+              )}
             </div>
+          </div>
 
-            {decoded && (
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-lg bg-muted/50 p-3 text-center">
-                  <p className="text-xs text-muted-foreground">ფაკულტეტი</p>
-                  <p className="mt-1 text-sm font-medium text-foreground line-clamp-2">{decoded.faculty.nameKa}</p>
-                </div>
-                <div className="rounded-lg bg-muted/50 p-3 text-center">
-                  <p className="text-xs text-muted-foreground">{emisSemester ? "სემესტრი" : "ჩარიცხვის წელი"}</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">
-                    {emisSemester ? `${emisSemester} სემესტრი` : `${decoded.entryYear} წელი`}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-muted/50 p-3 text-center">
-                  <p className="text-xs text-muted-foreground">აკად. ჯგუფი</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{displayGroup?.toUpperCase()}</p>
-                </div>
+          {/* Info grid */}
+          {decoded && (
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <p className="text-muted-foreground font-medium">ფაკულტეტი</p>
+                <p className="text-foreground line-clamp-1">{decoded.faculty.nameKa}</p>
               </div>
-            )}
-            {emisProgram && (
-              <div className="mt-3 rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-xs text-muted-foreground">პროგრამა</p>
-                <p className="mt-1 text-sm font-medium text-foreground">{emisProgram}</p>
+              <div>
+                <p className="text-muted-foreground font-medium">სემესტრი</p>
+                <p className="text-foreground">{semesterLabel}</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div>
+                <p className="text-muted-foreground font-medium">ჯგუფი</p>
+                <p className="text-foreground font-mono">{displayGroup?.toUpperCase() || "—"}</p>
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* Theme */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-medium">თემა</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex rounded-lg bg-muted p-1">
-              {themeOptions.map((option) => {
-                const Icon = option.icon;
-                const isActive = currentTheme === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    onClick={() => setTheme(option.value)}
-                    className={cn(
-                      "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all",
-                      isActive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Icon className="size-4" />
-                    <span className="hidden sm:inline">{option.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Theme — inline pill */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted-foreground mb-3 uppercase">თემა</p>
+          <div className="flex rounded-lg bg-muted p-1 gap-1">
+            {themeOptions.map((option) => {
+              const Icon = option.icon;
+              const isActive = currentTheme === option.value;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => setTheme(option.value)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-2 rounded-md px-2 py-2 text-xs font-medium transition-all",
+                    isActive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title={option.label}
+                >
+                  <Icon className="size-4" />
+                  <span className="hidden sm:inline text-xs">{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        {/* About */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-medium">შესახებ</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">ვერსია</span>
-              <span className="text-sm font-medium text-foreground">2.0.0</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">შექმნილია</span>
-              <span className="text-sm font-medium text-foreground">agruni.edu.ge-სთვის</span>
-            </div>
-            <a
-              href="https://github.com/000Janela000/unihub"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
-            >
-              <div className="flex items-center gap-3">
-                <Github className="size-5 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">GitHub</span>
-              </div>
-              <ExternalLink className="size-4 text-muted-foreground" />
-            </a>
-          </CardContent>
-        </Card>
+        {/* About — simple dividers */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3 text-sm">
+          <p className="text-xs font-medium text-muted-foreground uppercase">შესახებ</p>
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <span className="text-muted-foreground">ვერსია</span>
+            <span className="font-medium text-foreground">2.0.0</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <span className="text-muted-foreground">შექმნილია</span>
+            <span className="font-medium text-foreground">agruni.edu.ge-სთვის</span>
+          </div>
+          <a
+            href="https://github.com/000Janela000/unihub"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-primary hover:underline pt-2"
+          >
+            <Github className="size-4" />
+            <span className="font-medium">GitHub</span>
+            <ExternalLink className="size-3 ml-auto" />
+          </a>
+        </div>
 
         {/* Sign Out */}
         <Button
