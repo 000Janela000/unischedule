@@ -195,6 +195,12 @@ export default function GradesPage() {
   }
 
   async function fetchCardDetails(resultId: number, courseKey: string) {
+    // Skip if resultId is invalid (0 means no card details available)
+    if (resultId === 0) {
+      toggleSubject(courseKey);
+      return;
+    }
+
     if (cardDetails.has(resultId)) {
       toggleSubject(courseKey);
       return;
@@ -468,9 +474,9 @@ export default function GradesPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{earned} cr earned</span>
+                    <span>{earned} მოპოვებული</span>
                     <span>·</span>
-                    <span>{attempted - earned} cr pending</span>
+                    <span>{attempted} სულ</span>
                   </div>
                   <div className="flex items-center gap-3 ml-4">
                     <span className="text-sm font-semibold text-foreground min-w-12 text-right">{semGpa.toFixed(2)}</span>

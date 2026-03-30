@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, Monitor, LogOut, Github, ExternalLink, RefreshCw } from "lucide-react";
+import { Sun, Moon, Monitor, LogOut, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserGroup } from "@/hooks/use-user-group";
 import { decodeGroupCode, buildGroupCode, getFacultyByPrefix } from "@/lib/group-decoder";
@@ -65,14 +65,12 @@ export default function SettingsPage() {
           }
         }
 
-        // Get program/semester from JWT
+        // Get program/semester from localStorage token (sync.js writes it)
         try {
-          const cookies = document.cookie.split(";").map((c) => c.trim());
-          const emisCookie = cookies.find((c) => c.startsWith("emis_token="));
-          if (emisCookie) {
-            const token = emisCookie.split("=")[1];
+          const token = localStorage.getItem("emis_token");
+          if (token) {
             const payload = JSON.parse(atob(token.split(".")[1]));
-            if (payload.currentProgram?.nameEng) setEmisProgram(payload.currentProgram.nameEng);
+            if (payload.view?.currentProgram?.nameEng) setEmisProgram(payload.view.currentProgram.nameEng);
             if (payload.view?.semester) setEmisSemester(payload.view.semester);
           }
         } catch {}
@@ -84,7 +82,8 @@ export default function SettingsPage() {
   const currentTheme = mounted ? theme : "system";
   const displayGroup = emisGroup || group?.groupCode;
   const decoded = displayGroup ? decodeGroupCode(displayGroup) : null;
-  const semesterLabel = emisSemester ? `მე-${emisSemester} სემესტრი` : (decoded ? `${decoded.entryYear} წელი` : "—");
+  const enrollmentYear = decoded?.entryYear || "—";
+  const semesterLabel = emisSemester ? `მე-${emisSemester} სემესტრი` : enrollmentYear;
 
   return (
     <div className="min-h-screen pb-24 lg:pb-8">
@@ -119,10 +118,10 @@ export default function SettingsPage() {
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
               <div>
                 <p className="text-muted-foreground font-medium">ფაკულტეტი</p>
-                <p className="text-foreground line-clamp-1">{decoded.faculty.nameKa}</p>
+                <p className="text-foreground">{decoded.faculty.nameKa}</p>
               </div>
               <div>
-                <p className="text-muted-foreground font-medium">სემესტრი</p>
+                <p className="text-muted-foreground font-medium">მიღება</p>
                 <p className="text-foreground">{semesterLabel}</p>
               </div>
               <div>
@@ -165,20 +164,10 @@ export default function SettingsPage() {
             <span className="text-muted-foreground">ვერსია</span>
             <span className="font-medium text-foreground">2.0.0</span>
           </div>
-          <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center justify-between">
             <span className="text-muted-foreground">შექმნილია</span>
             <span className="font-medium text-foreground">agruni.edu.ge-სთვის</span>
           </div>
-          <a
-            href="https://github.com/000Janela000/unihub"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-primary hover:underline pt-2"
-          >
-            <Github className="size-4" />
-            <span className="font-medium">GitHub</span>
-            <ExternalLink className="size-3 ml-auto" />
-          </a>
         </div>
 
         {/* Sign Out */}
