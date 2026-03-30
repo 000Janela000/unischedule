@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GraduationCap, Puzzle, ExternalLink, RefreshCw, ChevronDown } from "lucide-react";
+import { GraduationCap, Puzzle, ExternalLink, RefreshCw, ChevronDown, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEmis } from "@/hooks/use-emis";
 import Link from "next/link";
@@ -21,8 +21,18 @@ interface Course {
   professor: string;
   groupName: string;
   year: string;
-  confirm: string; // "yes" or "no"
-  estListStatus: string | null; // "active", "archive", or null for imported records
+  confirm: string;
+  estListStatus: string | null;
+  resultId: number;
+  bookId: number;
+}
+
+interface CardComponent {
+  name: string;
+  result: string;
+  maxScore: number | null;
+  weight: number;
+  altName: string;
 }
 
 interface JwtStats {
@@ -42,8 +52,9 @@ const GRADE_CONFIG: Record<string, { label: string; color: string; points: numbe
   F: { label: "F", color: "text-destructive", points: 0 },
 };
 
-// Georgian semester labels: "მე-1 სემესტრი", "მე-2 სემესტრი", etc.
-const semesterLabel = (n: number): string => `მე-${n} სემესტრი`;
+// Roman numerals for semesters
+const romanNumerals = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+const semesterLabel = (n: number): string => `${romanNumerals[n] || n} სემესტრი`;
 
 function getJwtStats(): JwtStats | null {
   try {
@@ -92,6 +103,12 @@ function computeSemesterGpa(courses: Course[]): number {
   return weighted / totalCredits;
 }
 
+function computeSemesterCredits(courses: Course[]): { earned: number; attempted: number } {
+  const attempted = courses.reduce((s, c) => s + c.credits, 0);
+  const earned = courses.filter((c) => c.grade !== "").reduce((s, c) => s + c.credits, 0);
+  return { earned, attempted };
+}
+
 export default function GradesPage() {
   const { callEmis } = useEmis();
   const [connected, setConnected] = useState(false);
@@ -101,6 +118,9 @@ export default function GradesPage() {
   const [selectedSemester, setSelectedSemester] = useState<number | "all">("all");
   const [syncing, setSyncing] = useState(false);
   const [expandedSemesters, setExpandedSemesters] = useState<Set<number>>(new Set());
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+  const [cardDetails, setCardDetails] = useState<Map<number, CardComponent[]>>(new Map());
+  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     checkConnection();
@@ -153,6 +173,8 @@ export default function GradesPage() {
               year: r.year || "",
               confirm: r.confirm || "no",
               estListStatus: r.est_list?.status || null,
+              resultId: r.resultId || 0,
+              bookId: r.bookId || 0,
             });
           }
         }
@@ -171,6 +193,60 @@ export default function GradesPage() {
     await fetchGrades();
     setSyncing(false);
   }
+
+  async function fetchCardDetails(resultId: number, courseKey: string) {
+    if (cardDetails.has(resultId)) {
+      toggleSubject(courseKey);
+      return;
+    }
+
+    setLoadingDetails((prev) => {
+      const next = new Set(prev);
+      next.add(courseKey);
+      return next;
+    });
+    try {
+      const data = await callEmis("/student/getCardDetails", { resultId });
+      if (data?.result === "yes" && Array.isArray(data.data)) {
+        const components: CardComponent[] = data.data
+          .filter((item: any) => item.componentType !== 3) // Filter out totals/outcomes
+          .map((item: any) => ({
+            name: item.name || "",
+            result: item.result || "",
+            maxScore: item.data?.maxScore || null,
+            weight: item.data?.weight || 0,
+            altName: item.data?.altName || item.altName || "",
+          }));
+        setCardDetails((prev) => {
+          const next = new Map(prev);
+          next.set(resultId, components);
+          return next;
+        });
+        setExpandedSubjects((prev) => {
+          const next = new Set(prev);
+          next.add(courseKey);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch card details:", err);
+    } finally {
+      setLoadingDetails((prev) => {
+        const next = new Set(prev);
+        next.delete(courseKey);
+        return next;
+      });
+    }
+  }
+
+  const toggleSubject = (courseKey: string) => {
+    setExpandedSubjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(courseKey)) next.delete(courseKey);
+      else next.add(courseKey);
+      return next;
+    });
+  };
 
   // Use JWT GPA (authoritative from EMIS) — never recalculate
   const gpa = jwtStats?.gpa ?? 0;
@@ -211,14 +287,6 @@ export default function GradesPage() {
     });
   };
 
-  // Grade distribution for stats
-  const gradeDistribution = useMemo(() => {
-    const dist: Record<string, number> = {};
-    for (const c of courses) {
-      dist[c.grade] = (dist[c.grade] || 0) + 1;
-    }
-    return dist;
-  }, [courses]);
 
   // Not connected
   if (!loading && !connected) {
@@ -320,16 +388,12 @@ export default function GradesPage() {
                 <p className="text-3xl font-bold text-foreground">{earnedCredits}</p>
                 <p className="text-sm text-muted-foreground">/{requiredCredits}</p>
               </div>
-              {earnedCredits >= requiredCredits ? (
-                <p className="text-xs text-primary font-medium mt-1">✓ პროგრამა დასრულებულია</p>
-              ) : (
-                <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
-                    style={{ width: `${creditPercent}%` }}
-                  />
-                </div>
-              )}
+              <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${creditPercent}%` }}
+                />
+              </div>
             </div>
             <div className="border-t border-border pt-3">
               <p className="text-xs font-medium text-muted-foreground uppercase">{currentSemester > 0 ? semesterLabel(currentSemester) : "სემესტრი"}</p>
@@ -363,7 +427,7 @@ export default function GradesPage() {
                     : "text-muted-foreground hover:bg-secondary"
               )}
             >
-              მე-{sem}
+              {romanNumerals[sem] || sem}
               {sem === currentSemester && selectedSemester !== sem && (
                 <span className="ml-1 inline-block size-1.5 rounded-full bg-primary" />
               )}
@@ -377,7 +441,7 @@ export default function GradesPage() {
             const semCourses = coursesBySemester.get(sem) || [];
             const isExpanded = expandedSemesters.has(sem);
             const semGpa = computeSemesterGpa(semCourses);
-            const semCredits = semCourses.reduce((s, c) => s + c.credits, 0);
+            const { earned, attempted } = computeSemesterCredits(semCourses);
             const isCurrent = sem === currentSemester;
 
             return (
@@ -393,7 +457,7 @@ export default function GradesPage() {
                     isCurrent ? "bg-primary/5" : "bg-card hover:bg-secondary/50",
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <span className="text-sm font-semibold text-foreground">
                       {semesterLabel(sem)}
                     </span>
@@ -403,11 +467,15 @@ export default function GradesPage() {
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs text-muted-foreground">{semCredits} cr</span>
-                    <span className="text-sm font-semibold text-foreground">{semGpa.toFixed(2)}</span>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{earned} cr earned</span>
+                    <span>·</span>
+                    <span>{attempted - earned} cr pending</span>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4">
+                    <span className="text-sm font-semibold text-foreground min-w-12 text-right">{semGpa.toFixed(2)}</span>
                     <ChevronDown className={cn(
-                      "size-4 text-muted-foreground transition-transform",
+                      "size-4 text-muted-foreground transition-transform shrink-0",
                       isExpanded && "rotate-180"
                     )} />
                   </div>
@@ -416,44 +484,107 @@ export default function GradesPage() {
                 {/* Course rows */}
                 {isExpanded && (
                   <div className="divide-y divide-border">
-                    {semCourses.map((course, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3",
-                          isFailed(course) && "bg-destructive/5"
-                        )}
-                      >
-                        {/* Grade pill */}
-                        <div className={cn(
-                          "shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
-                          isPending(course) && "bg-muted text-muted-foreground",
-                          isFailed(course) && !isPending(course) && "bg-destructive/20 text-destructive",
-                          !isPending(course) && !isFailed(course) && GRADE_CONFIG[course.grade] && `${GRADE_CONFIG[course.grade].color.replace('text-', 'bg-')} text-foreground`
-                        )}>
-                          {displayGrade(course)}
-                        </div>
+                    {semCourses.map((course, i) => {
+                      const courseKey = `${sem}-${i}`;
+                      const isSubjectExpanded = expandedSubjects.has(courseKey);
+                      const isLoadingDetails = loadingDetails.has(courseKey);
+                      const details = cardDetails.get(course.resultId) || [];
 
-                        {/* Subject info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {course.name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                            <span>{course.credits} ECTS</span>
-                            {course.professor && (
-                              <span className="truncate">· {course.professor}</span>
+                      return (
+                        <div
+                          key={courseKey}
+                          className={cn(
+                            "border-0",
+                            isFailed(course) && !isPending(course) && "bg-destructive/5"
+                          )}
+                        >
+                          {/* Course header row */}
+                          <button
+                            onClick={() => fetchCardDetails(course.resultId, courseKey)}
+                            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-secondary/30 transition-colors text-left"
+                          >
+                            {/* Grade pill */}
+                            <div
+                              className={cn(
+                                "shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
+                                isPending(course) && "bg-muted text-muted-foreground",
+                                isFailed(course) && !isPending(course) && "bg-destructive/20 text-destructive",
+                                !isPending(course) && !isFailed(course) && GRADE_CONFIG[course.grade] && `${GRADE_CONFIG[course.grade].color.replace('text-', 'bg-')} text-foreground`
+                              )}
+                            >
+                              {displayGrade(course)}
+                            </div>
+
+                            {/* Subject info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {course.name}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                                <span>{course.credits} ECTS</span>
+                                {course.professor && (
+                                  <span className="truncate">· {course.professor}</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Score */}
+                            <div className="text-right shrink-0 text-xs">
+                              <p className="font-semibold text-foreground">{course.points}</p>
+                              <p className="text-muted-foreground">ქულა</p>
+                            </div>
+
+                            {/* Syllabus button */}
+                            {course.bookId > 0 && (
+                              <a
+                                href={`https://emis.campus.edu.ge/student/download/syllabus/?bookId=${course.bookId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0 p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                title="ხელმისაწვდომი სილაბუსი"
+                              >
+                                <Download className="size-4" />
+                              </a>
                             )}
-                          </div>
-                        </div>
 
-                        {/* Score */}
-                        <div className="text-right shrink-0 text-xs">
-                          <p className="font-semibold text-foreground">{course.points}</p>
-                          <p className="text-muted-foreground">ქულა</p>
+                            {/* Expand chevron */}
+                            <ChevronDown
+                              className={cn(
+                                "size-4 text-muted-foreground transition-transform shrink-0",
+                                isSubjectExpanded && "rotate-180"
+                              )}
+                            />
+                          </button>
+
+                          {/* Component breakdown (expanded) */}
+                          {isSubjectExpanded && (
+                            <div className="border-t border-border bg-secondary/20 px-4 py-3 text-sm">
+                              {isLoadingDetails ? (
+                                <p className="text-xs text-muted-foreground">დატვირთვა...</p>
+                              ) : details.length > 0 ? (
+                                <div className="space-y-2">
+                                  {details.map((comp, idx) => (
+                                    <div key={idx} className="flex items-center justify-between text-xs">
+                                      <span className="text-muted-foreground">{comp.name}:</span>
+                                      <span className="font-medium text-foreground">
+                                        {comp.result}{comp.maxScore ? `/${comp.maxScore}` : ""}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  <div className="border-t border-border pt-2 mt-2 flex items-center justify-between font-medium">
+                                    <span className="text-foreground">ჯამი:</span>
+                                    <span className="text-foreground">{course.points}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">დეტალები მოძებნილი არ იქნა</p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
