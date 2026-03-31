@@ -4,29 +4,17 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Lecture, WeekSchedule } from '@/types';
 import { useUserGroup } from '@/hooks/use-user-group';
 import { subjectInList } from '@/lib/subject-matcher';
-
-const DAY_NAMES_KA: Record<number, string> = {
-  1: 'ორშაბათი',
-  2: 'სამშაბათი',
-  3: 'ოთხშაბათი',
-  4: 'ხუთშაბათი',
-  5: 'პარასკევი',
-};
-
-const DAY_NAMES_EN: Record<number, string> = {
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-};
+import { buildWeekSchedule } from '@/lib/schedule-utils';
 
 /**
  * When EMIS subjects are available, fetches ALL lectures and filters by subject name.
  * This handles cross-listed courses (e.g. con21 student taking elec24 subjects).
  * Falls back to group-based filtering when EMIS is not connected.
+ *
+ * Options:
+ * - fetchAll: if true, skip group filter even when no EMIS subjects (for cross-group search)
  */
-export function useSchedule(selectedSubjects?: string[] | null) {
+export function useSchedule(selectedSubjects?: string[] | null, options?: { fetchAll?: boolean }) {
   const [rawLectures, setRawLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +24,8 @@ export function useSchedule(selectedSubjects?: string[] | null) {
   const hasEmisSubjects = selectedSubjects && selectedSubjects.length > 0;
 
   const fetchLectures = useCallback(async () => {
-    if (!group?.groupCode && !hasEmisSubjects) {
+    const shouldFetchAll = options?.fetchAll;
+    if (!group?.groupCode && !hasEmisSubjects && !shouldFetchAll) {
       setRawLectures([]);
       setLoading(false);
       return;
@@ -47,8 +36,8 @@ export function useSchedule(selectedSubjects?: string[] | null) {
 
     try {
       const params = new URLSearchParams();
-      // Only add group filter when EMIS subjects are NOT available
-      if (!hasEmisSubjects && group?.groupCode) {
+      // Only add group filter when EMIS subjects are NOT available and not fetching all
+      if (!hasEmisSubjects && !shouldFetchAll && group?.groupCode) {
         params.set('group', group.groupCode);
       }
 
@@ -67,7 +56,7 @@ export function useSchedule(selectedSubjects?: string[] | null) {
     } finally {
       setLoading(false);
     }
-  }, [group?.groupCode, hasEmisSubjects]);
+  }, [group?.groupCode, hasEmisSubjects, options?.fetchAll]);
 
   useEffect(() => {
     if (groupLoading) return;
@@ -80,22 +69,9 @@ export function useSchedule(selectedSubjects?: string[] | null) {
     return rawLectures.filter((l) => subjectInList(l.subject, selectedSubjects));
   }, [rawLectures, selectedSubjects]);
 
-  const weekSchedule: WeekSchedule = useMemo(() => {
-    const days: WeekSchedule = [];
-    for (let d = 1; d <= 5; d++) {
-      const dayLectures = lectures
-        .filter((l) => l.dayOfWeek === d)
-        .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const weekSchedule = useMemo(() => buildWeekSchedule(lectures), [lectures]);
 
-      days.push({
-        dayOfWeek: d,
-        dayNameKa: DAY_NAMES_KA[d] || '',
-        dayNameEn: DAY_NAMES_EN[d] || '',
-        lectures: dayLectures,
-      });
-    }
-    return days;
-  }, [lectures]);
+  const hasNoData = !hasEmisSubjects && !group?.groupCode;
 
   return {
     lectures,
@@ -103,6 +79,7 @@ export function useSchedule(selectedSubjects?: string[] | null) {
     loading: groupLoading || loading,
     error,
     weekSchedule,
+    hasNoData,
     refetch: fetchLectures,
   };
 }
