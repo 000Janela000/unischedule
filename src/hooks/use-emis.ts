@@ -25,13 +25,43 @@ export function isTokenValid(): boolean {
 export async function navigateToEmis(returnUrl: string): Promise<void> {
   if (typeof window === "undefined") return;
 
+  // Preferred path: ask the extension directly via externally_connectable.
+  // Works immediately after install — does not depend on the sync.js content
+  // script being injected into the current tab (which only happens on reload).
+  const setViaExtension = (): Promise<boolean> =>
+    new Promise((resolve) => {
+      if (typeof chrome === "undefined" || !chrome.runtime?.sendMessage) {
+        resolve(false);
+        return;
+      }
+      try {
+        chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          { type: "SET_RETURN_URL", returnUrl },
+          (response) => {
+            if (chrome.runtime.lastError || !response?.ok) {
+              resolve(false);
+              return;
+            }
+            resolve(true);
+          }
+        );
+      } catch {
+        resolve(false);
+      }
+    });
+
+  if (await setViaExtension()) {
+    window.location.href = EMIS_BASE;
+    return;
+  }
+
+  // Fallback: older extension versions only set the flag via sync.js.
   return new Promise((resolve) => {
-    // Listen for sync.js acknowledgment
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "UNIHUB_EMIS_READY") {
         window.removeEventListener("message", handleMessage);
         clearTimeout(timeout);
-        // Flag is set, safe to navigate
         setTimeout(() => {
           window.location.href = EMIS_BASE;
           resolve();
@@ -41,14 +71,12 @@ export async function navigateToEmis(returnUrl: string): Promise<void> {
 
     window.addEventListener("message", handleMessage);
 
-    // Timeout: if no acknowledgment within 400ms, navigate anyway
     const timeout = setTimeout(() => {
       window.removeEventListener("message", handleMessage);
       window.location.href = EMIS_BASE;
       resolve();
     }, 400);
 
-    // Send navigation intent to sync.js
     window.postMessage({ type: "UNIHUB_NAVIGATE_EMIS", returnUrl }, "*");
   });
 }

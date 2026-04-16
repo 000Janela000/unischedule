@@ -8,3 +8,7 @@ next-env.d.ts
 .DS_Store
 data/*.json
 .vercel
+dist/
+test-results/
+playwright-report/
+.playwright-user-data/

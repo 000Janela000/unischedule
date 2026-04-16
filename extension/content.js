@@ -61,13 +61,6 @@ checkAndCapture();
 // Listen for storage changes (user logs in while page is open)
 window.addEventListener("storage", (e) => {
   if (e.key === "Student-Token" && e.newValue && isValidJwt(e.newValue)) {
-    captureAndClose(e.newValue);
-  }
-});
-
-// Listen for storage changes (user logs in while page is open)
-window.addEventListener("storage", (e) => {
-  if (e.key === "Student-Token" && e.newValue && isValidJwt(e.newValue)) {
     captureAndSync(e.newValue);
   }
 });

@@ -35,5 +35,13 @@ chrome.runtime.onMessageExternal.addListener(
       });
       return true;
     }
+
+    if (message.type === "SET_RETURN_URL") {
+      chrome.storage.local.set(
+        { returnToUniHub: true, returnUrl: message.returnUrl || null },
+        () => sendResponse({ ok: true })
+      );
+      return true;
+    }
   }
 );
