@@ -13,20 +13,40 @@ export function ExtensionModal() {
   const router = useRouter();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // Check if EMIS already connected
-      fetch("/api/emis/token")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.connected) return;
+    const timer = setTimeout(async () => {
+      try {
+        const r = await fetch("/api/emis/token");
+        const d = await r.json();
+        if (d.connected) return;
 
-          // Check skip timestamp
-          const lastSkip = getItem<number>(STORAGE_KEYS.MODAL_SKIP, 0);
-          if (Date.now() - lastSkip < SEVEN_DAYS) return;
+        // If the extension is already installed, don't push the "install it"
+        // modal — the inline "EMIS-ზე შესვლა" CTAs handle re-auth.
+        const EXTENSION_ID = "fhogblehhkpclmeoflmjpjcfldpmnlpa";
+        const hasExtension = await new Promise<boolean>((resolve) => {
+          if (typeof chrome === "undefined" || !chrome.runtime?.sendMessage) {
+            resolve(false);
+            return;
+          }
+          try {
+            chrome.runtime.sendMessage(
+              EXTENSION_ID,
+              { type: "GET_EMIS_TOKEN" },
+              (response) => {
+                resolve(!chrome.runtime.lastError && !!response);
+              }
+            );
+          } catch {
+            resolve(false);
+          }
+        });
+        if (hasExtension) return;
 
-          setShow(true);
-        })
-        .catch(() => {});
+        // Check skip timestamp
+        const lastSkip = getItem<number>(STORAGE_KEYS.MODAL_SKIP, 0);
+        if (Date.now() - lastSkip < SEVEN_DAYS) return;
+
+        setShow(true);
+      } catch {}
     }, 2000);
 
     return () => clearTimeout(timer);

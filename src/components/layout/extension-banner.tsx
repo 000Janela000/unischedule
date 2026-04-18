@@ -1,29 +1,60 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { X, Chrome } from "lucide-react";
+import { X, Chrome, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { navigateToEmis } from "@/hooks/use-emis";
+
+const EXTENSION_ID = "fhogblehhkpclmeoflmjpjcfldpmnlpa";
+
+type State = "connected" | "extension-missing" | "session-expired";
+
+/** Ping the extension. Resolves true iff it's installed and reachable. */
+function pingExtension(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof chrome === "undefined" || !chrome.runtime?.sendMessage) {
+      resolve(false);
+      return;
+    }
+    try {
+      chrome.runtime.sendMessage(
+        EXTENSION_ID,
+        { type: "GET_EMIS_TOKEN" },
+        (response) => {
+          if (chrome.runtime.lastError || !response) {
+            resolve(false);
+            return;
+          }
+          resolve(true);
+        }
+      );
+    } catch {
+      resolve(false);
+    }
+  });
+}
 
 export function ExtensionBanner() {
   const [visible, setVisible] = useState(false);
-  const [connected, setConnected] = useState(true);
+  const [state, setState] = useState<State>("connected");
 
-  const checkConnection = useCallback(() => {
-    fetch("/api/emis/token")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.connected) {
-          setConnected(true);
-          setVisible(false);
-        } else {
-          setConnected(false);
-          setVisible(true);
-        }
-      })
-      .catch(() => {
-        setConnected(false);
-        setVisible(true);
-      });
+  const checkConnection = useCallback(async () => {
+    try {
+      const r = await fetch("/api/emis/token");
+      const d = await r.json();
+      if (d.connected) {
+        setState("connected");
+        setVisible(false);
+        return;
+      }
+      // Not connected — figure out *why* so we ask the user for the right thing.
+      const hasExtension = await pingExtension();
+      setState(hasExtension ? "session-expired" : "extension-missing");
+      setVisible(true);
+    } catch {
+      setState("extension-missing");
+      setVisible(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -39,16 +70,30 @@ export function ExtensionBanner() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [checkConnection]);
 
-  if (connected || !visible) return null;
+  if (state === "connected" || !visible) return null;
 
   return (
     <div className="relative flex items-center gap-3 border-b border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
       <Chrome className="size-4 flex-shrink-0 text-primary" />
       <p className="flex-1 text-foreground/80">
-        <Link href="/setup" className="font-medium text-primary hover:underline">
-          Chrome გაფართოების
-        </Link>
-        {" "}დაყენებით მიიღეთ ნიშნები, GPA და სრული ფუნქციონალი
+        {state === "session-expired" ? (
+          <>
+            EMIS სესია ამოიწურა.{" "}
+            <button
+              onClick={() => navigateToEmis(window.location.href)}
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
+              EMIS-ზე თავიდან შესვლა <ExternalLink className="size-3" />
+            </button>
+          </>
+        ) : (
+          <>
+            <Link href="/setup" className="font-medium text-primary hover:underline">
+              Chrome გაფართოების
+            </Link>
+            {" "}დაყენებით მიიღეთ ნიშნები, GPA და სრული ფუნქციონალი
+          </>
+        )}
       </p>
       <button
         onClick={() => setVisible(false)}
