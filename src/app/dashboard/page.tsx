@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +14,13 @@ import {
   BookOpen,
   Globe,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSchedule } from "@/hooks/use-schedule";
 import { useUserGroup } from "@/hooks/use-user-group";
 import { useExams } from "@/hooks/use-exams";
-import { GraduationCap } from "lucide-react";
+import { useEmis, navigateToEmis } from "@/hooks/use-emis";
 
 const quickLinks = [
   { label: "EMIS", icon: Globe, href: "https://emis.campus.edu.ge" },
@@ -30,39 +31,70 @@ const quickLinks = [
 
 function getGeorgianDate() {
   const months = [
-    "იანვარი", "თებერვალი", "მარტი", "აპრილი", "მაისი", "ივნისი",
-    "ივლისი", "აგვისტო", "სექტემბერი", "ოქტომბერი", "ნოემბერი", "დეკემბერი",
+    "იანვარი",
+    "თებერვალი",
+    "მარტი",
+    "აპრილი",
+    "მაისი",
+    "ივნისი",
+    "ივლისი",
+    "აგვისტო",
+    "სექტემბერი",
+    "ოქტომბერი",
+    "ნოემბერი",
+    "დეკემბერი",
   ];
-  const days = ["კვირა", "ორშაბათი", "სამშაბათი", "ოთხშაბათი", "ხუთშაბათი", "პარასკევი", "შაბათი"];
+  const days = [
+    "კვირა",
+    "ორშაბათი",
+    "სამშაბათი",
+    "ოთხშაბათი",
+    "ხუთშაბათი",
+    "პარასკევი",
+    "შაბათი",
+  ];
   const now = new Date();
   return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
 }
 
 function getExamTypeStyles(type: string) {
   switch (type) {
-    case "midterm": return "border-l-amber-500 bg-amber-500/5";
-    case "final": return "border-l-red-500 bg-red-500/5";
-    case "quiz": return "border-l-blue-500 bg-blue-500/5";
-    default: return "border-l-primary";
+    case "midterm":
+      return "border-l-amber-500 bg-amber-500/5";
+    case "final":
+      return "border-l-red-500 bg-red-500/5";
+    case "quiz":
+      return "border-l-blue-500 bg-blue-500/5";
+    default:
+      return "border-l-primary";
   }
 }
 
 function getExamBadgeStyles(type: string) {
   switch (type) {
-    case "midterm": return "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20";
-    case "final": return "bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20";
-    case "quiz": return "bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20";
-    default: return "";
+    case "midterm":
+      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20";
+    case "final":
+      return "bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20";
+    case "quiz":
+      return "bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20";
+    default:
+      return "";
   }
 }
 
 function getExamTypeLabel(type: string) {
   switch (type) {
-    case "midterm": return "შუალედური";
-    case "final": return "ფინალური";
-    case "quiz": return "ქვიზი";
-    case "retake": return "აღდგენა";
-    default: return type;
+    case "midterm":
+      return "შუალედური";
+    case "final":
+      return "ფინალური";
+    case "quiz":
+      return "ქვიზი";
+    case "retake":
+      return "აღდგენა";
+    default:
+      return type;
   }
 }
 
@@ -76,36 +108,59 @@ function daysUntil(date: Date): number {
 
 function GpaCard() {
   const [gpa, setGpa] = useState<number | null>(null);
-  const [credits, setCredits] = useState<{ earned: number; total: number } | null>(null);
+  const [credits, setCredits] = useState<{
+    earned: number;
+    total: number;
+  } | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const { hasExtension, syncToken } = useEmis();
+
+  const loadFromLocalStorage = useCallback((): boolean => {
+    try {
+      const token = localStorage.getItem("emis_token");
+      if (!token) return false;
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (!payload.view) return false;
+      setGpa(payload.view.gpa ?? null);
+      setCredits({
+        earned: payload.view.credit || 0,
+        total: payload.view.programCredit || 240,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
-    fetch("/api/emis/token")
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.connected) return;
-        try {
-          const cookies = document.cookie.split(";").map((c) => c.trim());
-          const emisCookie = cookies.find((c) => c.startsWith("emis_token="));
-          if (!emisCookie) return;
-          const token = emisCookie.split("=")[1];
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          if (payload.view) {
-            setGpa(payload.view.gpa || null);
-            setCredits({
-              earned: payload.view.credit || 0,
-              total: payload.view.programCredit || 240,
-            });
-          }
-        } catch {}
-      })
-      .catch(() => {});
-  }, []);
+    if (loadFromLocalStorage()) return;
+    // Token may already be in the extension from a prior EMIS login,
+    // but sync.js didn't fire yet (e.g. dashboard opened before extension loaded).
+    // Proactively pull it.
+    syncToken().then(() => loadFromLocalStorage());
+  }, [loadFromLocalStorage, syncToken]);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    const synced = await syncToken();
+    if (synced && loadFromLocalStorage()) {
+      setConnecting(false);
+      return;
+    }
+    // Extension has no token — bounce to EMIS, content.js will return us here
+    await navigateToEmis(window.location.href);
+  };
+
+  const connected = credits !== null;
 
   return (
     <Card className="border-border bg-card">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-semibold">GPA</CardTitle>
-        <Link href="/dashboard/grades" className="flex items-center gap-1 text-sm text-primary hover:underline">
+        <Link
+          href="/dashboard/grades"
+          className="flex items-center gap-1 text-sm text-primary hover:underline"
+        >
           ნიშნები <ChevronRight className="size-4" />
         </Link>
       </CardHeader>
@@ -117,25 +172,44 @@ function GpaCard() {
             </span>
           </div>
           <div className="flex-1 space-y-2">
-            {credits ? (
+            {connected ? (
               <>
                 <p className="text-sm text-muted-foreground">
-                  {credits.earned} / {credits.total} კრედიტი
+                  {credits!.earned} / {credits!.total} კრედიტი
                 </p>
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full bg-primary transition-all"
-                    style={{ width: `${Math.min((credits.earned / credits.total) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min((credits!.earned / credits!.total) * 100, 100)}%`,
+                    }}
                   />
                 </div>
               </>
+            ) : hasExtension ? (
+              <button
+                onClick={handleConnect}
+                disabled={connecting}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-60"
+              >
+                {connecting ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    დაკავშირება...
+                  </>
+                ) : (
+                  <>
+                    EMIS-ზე შესვლა <ExternalLink className="size-3.5" />
+                  </>
+                )}
+              </button>
             ) : (
-              <>
-                <p className="text-sm text-muted-foreground">EMIS-თან დაკავშირება საჭიროა</p>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full w-0 bg-primary" />
-                </div>
-              </>
+              <Link
+                href="/setup"
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                გაფართოების დაყენება <ChevronRight className="size-3.5" />
+              </Link>
             )}
           </div>
         </div>
@@ -156,10 +230,11 @@ export default function DashboardPage() {
   }, []);
 
   const userName = session?.user?.name?.split(" ")[0] || "სტუდენტი";
-  const userInitials = session?.user?.name
-    ?.split(" ")
-    .map((n: string) => n[0])
-    .join("") || "U";
+  const userInitials =
+    session?.user?.name
+      ?.split(" ")
+      .map((n: string) => n[0])
+      .join("") || "U";
 
   // Today's lectures (dayOfWeek: 1=Mon, 5=Fri; JS getDay: 0=Sun, 6=Sat)
   const today = new Date();
@@ -184,7 +259,10 @@ export default function DashboardPage() {
             <h1 className="text-xl font-semibold text-foreground lg:text-2xl">
               გამარჯობა, {userName}
             </h1>
-            <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+            <p
+              className="text-sm text-muted-foreground"
+              suppressHydrationWarning
+            >
               {currentDate || "\u00A0"}
             </p>
           </div>
@@ -202,8 +280,13 @@ export default function DashboardPage() {
           {/* Today's Schedule */}
           <Card className="border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base font-semibold">დღის ცხრილი</CardTitle>
-              <Link href="/dashboard/schedule" className="flex items-center gap-1 text-sm text-primary hover:underline">
+              <CardTitle className="text-base font-semibold">
+                დღის ცხრილი
+              </CardTitle>
+              <Link
+                href="/dashboard/schedule"
+                className="flex items-center gap-1 text-sm text-primary hover:underline"
+              >
                 სრულად <ChevronRight className="size-4" />
               </Link>
             </CardHeader>
@@ -211,7 +294,10 @@ export default function DashboardPage() {
               {lecturesLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-14 animate-pulse rounded-lg bg-muted/50" />
+                    <div
+                      key={i}
+                      className="h-14 animate-pulse rounded-lg bg-muted/50"
+                    />
                   ))}
                 </div>
               ) : todayLectures.length === 0 ? (
@@ -220,7 +306,10 @@ export default function DashboardPage() {
                 </p>
               ) : (
                 todayLectures.map((lecture, i) => (
-                  <div key={i} className="flex items-center gap-4 rounded-lg bg-muted/50 p-3">
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 rounded-lg bg-muted/50 p-3"
+                  >
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="size-4" />
                       <span className="w-24 font-medium">
@@ -228,7 +317,9 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{lecture.subject}</p>
+                      <p className="font-medium text-foreground">
+                        {lecture.subject}
+                      </p>
                     </div>
                     {lecture.room && (
                       <Badge variant="secondary" className="gap-1">
@@ -245,8 +336,13 @@ export default function DashboardPage() {
           {/* Upcoming Exams */}
           <Card className="border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base font-semibold">მომავალი გამოცდები</CardTitle>
-              <Link href="/dashboard/exams" className="flex items-center gap-1 text-sm text-primary hover:underline">
+              <CardTitle className="text-base font-semibold">
+                მომავალი გამოცდები
+              </CardTitle>
+              <Link
+                href="/dashboard/exams"
+                className="flex items-center gap-1 text-sm text-primary hover:underline"
+              >
                 სრულად <ChevronRight className="size-4" />
               </Link>
             </CardHeader>
@@ -254,7 +350,10 @@ export default function DashboardPage() {
               {examsLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 animate-pulse rounded-lg bg-muted/50" />
+                    <div
+                      key={i}
+                      className="h-16 animate-pulse rounded-lg bg-muted/50"
+                    />
                   ))}
                 </div>
               ) : upcomingExams.length === 0 ? (
@@ -270,22 +369,31 @@ export default function DashboardPage() {
                       key={i}
                       className={cn(
                         "flex items-center justify-between rounded-lg border-l-4 p-3",
-                        getExamTypeStyles(examType)
+                        getExamTypeStyles(examType),
                       )}
                     >
                       <div className="space-y-1">
-                        <p className="font-medium text-foreground">{exam.subject}</p>
+                        <p className="font-medium text-foreground">
+                          {exam.subject}
+                        </p>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground">
                             {new Date(exam.date).toLocaleDateString("ka-GE")}
                           </span>
-                          <Badge className={cn("text-xs", getExamBadgeStyles(examType))}>
+                          <Badge
+                            className={cn(
+                              "text-xs",
+                              getExamBadgeStyles(examType),
+                            )}
+                          >
                             {getExamTypeLabel(examType)}
                           </Badge>
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-lg font-semibold text-foreground">{days}</span>
+                        <span className="text-lg font-semibold text-foreground">
+                          {days}
+                        </span>
                         <p className="text-xs text-muted-foreground">დღეში</p>
                       </div>
                     </div>
@@ -301,7 +409,9 @@ export default function DashboardPage() {
           {/* Quick Links */}
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">სწრაფი ბმულები</CardTitle>
+              <CardTitle className="text-base font-semibold">
+                სწრაფი ბმულები
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
@@ -316,7 +426,9 @@ export default function DashboardPage() {
                     <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
                       <link.icon className="size-5 text-primary" />
                     </div>
-                    <span className="font-medium text-foreground">{link.label}</span>
+                    <span className="font-medium text-foreground">
+                      {link.label}
+                    </span>
                   </a>
                 ))}
               </div>
