@@ -110,7 +110,7 @@ function computeSemesterCredits(courses: Course[]): { earned: number; attempted:
 }
 
 export default function GradesPage() {
-  const { callEmis } = useEmis();
+  const { callEmis, syncToken } = useEmis();
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -128,14 +128,23 @@ export default function GradesPage() {
 
   async function checkConnection() {
     try {
+      // Cookie check — fast path, but can lose a race with sync.js on first
+      // page load after EMIS login.
+      let connectedNow = false;
       const res = await fetch("/api/emis/token");
       const data = await res.json();
       if (data.connected) {
+        connectedNow = true;
+      } else {
+        // Fallback: ask the extension directly. If it has a valid token,
+        // syncToken writes localStorage + sets the server cookie for next time.
+        connectedNow = await syncToken();
+      }
+
+      if (connectedNow) {
         setConnected(true);
-        // Read JWT stats synchronously — no race condition
         const stats = getJwtStats();
         setJwtStats(stats);
-        // Default to current semester
         if (stats?.semester) {
           setSelectedSemester(stats.semester);
           setExpandedSemesters(new Set([stats.semester]));

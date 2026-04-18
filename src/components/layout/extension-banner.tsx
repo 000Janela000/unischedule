@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, Chrome, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { navigateToEmis } from "@/hooks/use-emis";
+import { navigateToEmis, useEmis } from "@/hooks/use-emis";
 
 const EXTENSION_ID = "fhogblehhkpclmeoflmjpjcfldpmnlpa";
 
@@ -37,6 +37,7 @@ function pingExtension(): Promise<boolean> {
 export function ExtensionBanner() {
   const [visible, setVisible] = useState(false);
   const [state, setState] = useState<State>("connected");
+  const { syncToken } = useEmis();
 
   const checkConnection = useCallback(async () => {
     try {
@@ -49,13 +50,27 @@ export function ExtensionBanner() {
       }
       // Not connected — figure out *why* so we ask the user for the right thing.
       const hasExtension = await pingExtension();
-      setState(hasExtension ? "session-expired" : "extension-missing");
-      setVisible(true);
+      if (!hasExtension) {
+        setState("extension-missing");
+        setVisible(true);
+        return;
+      }
+      // Extension is installed — try to sync. This covers the race where
+      // sync.js hasn't posted the token yet (our GET just lost to its POST).
+      // If the extension has no valid token, it'll be a genuine session-expired.
+      const synced = await syncToken();
+      if (synced) {
+        setState("connected");
+        setVisible(false);
+      } else {
+        setState("session-expired");
+        setVisible(true);
+      }
     } catch {
       setState("extension-missing");
       setVisible(true);
     }
-  }, []);
+  }, [syncToken]);
 
   useEffect(() => {
     checkConnection();

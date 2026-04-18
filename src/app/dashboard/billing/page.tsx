@@ -40,7 +40,7 @@ interface Payment {
 }
 
 export default function BillingPage() {
-  const { callEmis } = useEmis();
+  const { callEmis, syncToken } = useEmis();
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [years, setYears] = useState<BillingYear[]>([]);
@@ -55,9 +55,18 @@ export default function BillingPage() {
 
   async function checkConnection() {
     try {
+      // Cookie check can race with sync.js on first page load — fall back to
+      // asking the extension directly before giving up.
+      let connectedNow = false;
       const res = await fetch("/api/emis/token");
       const data = await res.json();
       if (data.connected) {
+        connectedNow = true;
+      } else {
+        connectedNow = await syncToken();
+      }
+
+      if (connectedNow) {
         setConnected(true);
         await loadYears();
       } else {
