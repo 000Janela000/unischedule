@@ -7,18 +7,40 @@ const EXTENSION_ID = "fhogblehhkpclmeoflmjpjcfldpmnlpa";
 const EMIS_BASE = "https://emis.campus.edu.ge";
 const TOKEN_STORAGE_KEY = "emis_token";
 
-/** Check if JWT token is still valid (not expired) */
-export function isTokenValid(): boolean {
+/** True if the JWT is parseable and its exp is still in the future. */
+function isJwtStringValid(token: string): boolean {
   try {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (!token) return false;
     const payload = JSON.parse(atob(token.split(".")[1]));
-    if (!payload.exp) return true; // No expiry = valid
-    // Token valid if expires more than 5 minutes from now
+    if (!payload.exp) return true; // No expiry claim = treat as valid
     return payload.exp * 1000 > Date.now() + 5 * 60 * 1000;
   } catch {
     return false;
   }
+}
+
+/** Check if the stored JWT is still valid (not expired). */
+export function isTokenValid(): boolean {
+  try {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!token) return false;
+    return isJwtStringValid(token);
+  } catch {
+    return false;
+  }
+}
+
+/** Thrown when the EMIS session is missing or expired and re-auth is required. */
+export class EmisSessionExpiredError extends Error {
+  constructor(message = "EMIS session expired") {
+    super(message);
+    this.name = "EmisSessionExpiredError";
+  }
+}
+
+/** Purge the cached token from every surface (localStorage + server cookie). */
+async function purgeStoredToken() {
+  try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch {}
+  try { await fetch("/api/emis/token", { method: "DELETE" }); } catch {}
 }
 
 /** Navigate to EMIS for authentication, with auto-return to UniHub after token capture */
@@ -91,12 +113,16 @@ function saveToken(token: string) {
   try { localStorage.setItem(TOKEN_STORAGE_KEY, token); } catch {}
 }
 
-/** Get EMIS token: try localStorage first, then extension */
+/** Get a *valid* EMIS token: try localStorage first, then extension. Expired tokens are purged. */
 async function getEmisToken(): Promise<string | null> {
   // Try localStorage first (fastest, works without extension)
   try {
     const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (stored) return stored;
+    if (stored) {
+      if (isJwtStringValid(stored)) return stored;
+      // Stale cache — evict before falling through to the extension
+      await purgeStoredToken();
+    }
   } catch {}
 
   // Try extension
@@ -111,6 +137,10 @@ async function getEmisToken(): Promise<string | null> {
         { type: "GET_EMIS_TOKEN" },
         (response) => {
           if (chrome.runtime.lastError || !response?.token) {
+            resolve(null);
+            return;
+          }
+          if (!isJwtStringValid(response.token)) {
             resolve(null);
             return;
           }
@@ -230,7 +260,7 @@ export function useEmis() {
 
     if (!token) {
       setStatus({ connected: false, lastSync: null });
-      throw new Error("EMIS not connected");
+      throw new EmisSessionExpiredError();
     }
 
     // Extract studentId from JWT for endpoints that need it
@@ -263,8 +293,11 @@ export function useEmis() {
 
     if (!res.ok) {
       if (res.status === 401) {
+        // EMIS invalidated the token server-side — purge and force reconnect.
         setError("EMIS სესია ამოიწურა. გახსენით emis.campus.edu.ge თავიდან შესასვლელად.");
         setStatus({ connected: false, lastSync: null });
+        await purgeStoredToken();
+        throw new EmisSessionExpiredError();
       }
       throw new Error(`EMIS error ${res.status}`);
     }

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Wallet, Gift, ArrowDownLeft, Puzzle, ExternalLink, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEmis } from "@/hooks/use-emis";
+import { useEmis, EmisSessionExpiredError } from "@/hooks/use-emis";
 import Link from "next/link";
 
 interface BillingYear {
@@ -80,7 +80,11 @@ export default function BillingPage() {
         }
       }
     } catch (err) {
-      console.error("Failed to load billing years:", err);
+      if (err instanceof EmisSessionExpiredError) {
+        setConnected(false);
+      } else {
+        console.error("Failed to load billing years:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -98,7 +102,11 @@ export default function BillingPage() {
       if (grantsData?.data) setGrants(grantsData.data);
       if (eventsData?.data) setPayments(eventsData.data.filter((e: any) => e.action === 1));
     } catch (err) {
-      console.error("Failed to load billing details:", err);
+      if (err instanceof EmisSessionExpiredError) {
+        setConnected(false);
+      } else {
+        console.error("Failed to load billing details:", err);
+      }
     }
   }
 

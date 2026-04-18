@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { useSchedule } from "@/hooks/use-schedule";
 import { useUserGroup } from "@/hooks/use-user-group";
 import { useExams } from "@/hooks/use-exams";
-import { useEmis, navigateToEmis } from "@/hooks/use-emis";
+import { useEmis, navigateToEmis, isTokenValid } from "@/hooks/use-emis";
 
 const quickLinks = [
   { label: "EMIS", icon: Globe, href: "https://emis.campus.edu.ge" },
@@ -119,6 +119,8 @@ function GpaCard() {
     try {
       const token = localStorage.getItem("emis_token");
       if (!token) return false;
+      // Don't render stale GPA from an expired token — force the reconnect CTA.
+      if (!isTokenValid()) return false;
       const payload = JSON.parse(atob(token.split(".")[1]));
       if (!payload.view) return false;
       setGpa(payload.view.gpa ?? null);

@@ -5,6 +5,18 @@ import { cookies } from "next/headers";
 const EMIS_TOKEN_COOKIE = "emis_token";
 const MAX_AGE = 60 * 60 * 24; // 24 hours
 
+/** True if the JWT's exp claim is in the past (or payload unreadable). */
+function isExpiredJwt(token: string): boolean {
+  try {
+    const payloadB64 = token.split(".")[1];
+    const payload = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf8"));
+    if (!payload.exp) return false;
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
 /**
  * POST /api/emis/token
  * Receives the EMIS JWT from the UniHub frontend (which got it from the extension).
@@ -26,6 +38,10 @@ export async function POST(request: NextRequest) {
     // Validate JWT format (3 dot-separated base64 parts)
     if (token.split(".").length !== 3) {
       return NextResponse.json({ error: "Invalid token format" }, { status: 400 });
+    }
+
+    if (isExpiredJwt(token)) {
+      return NextResponse.json({ error: "token_expired" }, { status: 400 });
     }
 
     const response = NextResponse.json({ ok: true });
@@ -56,7 +72,19 @@ export async function GET() {
   const cookieStore = cookies();
   const token = cookieStore.get(EMIS_TOKEN_COOKIE);
 
-  return NextResponse.json({ connected: !!token });
+  if (!token) {
+    return NextResponse.json({ connected: false });
+  }
+
+  // Token present but expired — evict the cookie so the client goes through
+  // the reconnect flow instead of handing a zombie JWT to EMIS.
+  if (isExpiredJwt(token.value)) {
+    const response = NextResponse.json({ connected: false, expired: true });
+    response.cookies.delete(EMIS_TOKEN_COOKIE);
+    return response;
+  }
+
+  return NextResponse.json({ connected: true });
 }
 
 /**

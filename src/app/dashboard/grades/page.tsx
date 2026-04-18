@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GraduationCap, Puzzle, ExternalLink, RefreshCw, ChevronDown, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEmis } from "@/hooks/use-emis";
+import { useEmis, EmisSessionExpiredError } from "@/hooks/use-emis";
 import Link from "next/link";
 
 interface Course {
@@ -154,6 +154,13 @@ export default function GradesPage() {
     try {
       const data = await callEmis("/student/result/get", {});
 
+      // EMIS's 200-with-error shape: surface it instead of silently showing empty.
+      if (data?.result === "no" && data?.error === "token_expired") {
+        setConnected(false);
+        setCourses([]);
+        return;
+      }
+
       if (data?.result === "yes" && Array.isArray(data.data)) {
         const allItems: Course[] = [];
         for (const edu of data.data) {
@@ -181,7 +188,12 @@ export default function GradesPage() {
         setCourses(allItems);
       }
     } catch (err) {
-      console.error("Failed to fetch grades:", err);
+      if (err instanceof EmisSessionExpiredError) {
+        setConnected(false);
+        setCourses([]);
+      } else {
+        console.error("Failed to fetch grades:", err);
+      }
     } finally {
       setLoading(false);
     }

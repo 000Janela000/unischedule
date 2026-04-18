@@ -11,7 +11,7 @@ import { Sun, Moon, Monitor, LogOut, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserGroup } from "@/hooks/use-user-group";
 import { decodeGroupCode, buildGroupCode, getFacultyByPrefix } from "@/lib/group-decoder";
-import { useEmis } from "@/hooks/use-emis";
+import { useEmis, EmisSessionExpiredError } from "@/hooks/use-emis";
 
 type ThemeOption = "light" | "dark" | "system";
 
@@ -74,7 +74,13 @@ export default function SettingsPage() {
             if (payload.view?.semester) setEmisSemester(payload.view.semester);
           }
         } catch {}
-      } catch {}
+      } catch (err) {
+        // Expired session — pages that actually need EMIS data will drive the
+        // reconnect flow; settings just skips the auto-correct silently.
+        if (!(err instanceof EmisSessionExpiredError)) {
+          console.error("Settings EMIS sync failed:", err);
+        }
+      }
     }
     syncEmis();
   }, []);
